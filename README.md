@@ -1,120 +1,213 @@
-# LionFlow
+# LionCar
 
-![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/thocubeat/lionflow/stats/downloads.json) ![Active users (last 24h)](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/thocubeat/lionflow/stats/devices.json)
+A free, open-source iPhone app for your own connected **Peugeot, Citroën, DS, Opel or Vauxhall**. It is an iPhone port of
+the Android app [LionFlow](https://github.com/thocubeat/lionflow) and an unofficial alternative to the MyPeugeot,
+MyCitroën, MyDS, myOpel and MyVauxhall apps. It signs in with your normal brand account and talks to the same Stellantis
+servers, so it shows the same car data and sends the same remote commands.
 
-**[⬇ Download the latest version (APK)](https://github.com/thocubeat/lionflow/releases/latest/download/LionFlow.apk)** · [All releases](https://github.com/thocubeat/lionflow/releases)
+No ads, no analytics, no LionCar server.
 
-## What is LionFlow?
-
-LionFlow is a free, open-source Android app for your own connected Peugeot, Citroën, DS, Opel or Vauxhall. It's an unofficial alternative to the MyPeugeot, MyCitroën, MyDS, myOpel and MyVauxhall apps. It signs in with your normal account for your car's brand and talks to the same Stellantis servers, so it shows the same car data and sends the same remote commands. The difference is how it's built and what it does with that data.
-
-**Subscriptions (decided by the carmaker, not by LionFlow)**
-Status, battery, range, trips and service data come with your brand account. Charging control and pre-heating on electric and plug-in hybrid cars need the brand's e-Remote Control service (included in the Connect ONE pack on many new cars, otherwise Connect PLUS or a separate subscription). Lock, unlock, lights and horn need the Remote Control service (Connect PLUS). What is included, and for how long, depends on model, country and order date. Activate it in the brand's own app first; LionFlow can't do that for you. The app shows this for your brand before sign-in and next to the functions that need it.
-
-**How it differs from MyPeugeot**
-
-- **Quick and to the point:** opens straight to battery, range and charging, with no menus or offers in the way. It wakes the car in the background when the app opens, so commands get through faster, and shows each step while a command is on its way ("Waking the car…", "Car received it").
-- **Real charging power in kW:** the car only reports "km of range per hour". LionFlow works out the actual kW from the energy going into the battery.
-- **Charging log:** every session with time, % from–to, kWh, duration, average and peak kW, and where. Splits home from away, and estimates cost from your home price and up to 5 known chargers.
-- **Charge limit:** switch the car between its daily limit and a full charge for a trip, or let LionFlow stop charging at any % you choose, even on chargers that ignore the car's limit.
-- **Pre-heating schedules:** set "ready at 07:00, Monday to Friday" in a few taps.
-- **Range that makes sense:** when Peugeot's server reports 0 km by mistake, LionFlow estimates from your own driving instead.
-- **Clear errors:** when something fails you get the actual reason and code, not a generic "try again later".
-- **More on screen:** a Wear OS watch app, a home-screen widget, a free 2D/3D charger map, local weather and forecast, and layouts for foldables and tablets.
-- **Your language:** English, French, German, Spanish or Norwegian (Settings → Appearance → Language), or follow the phone.
-- **Several cars:** switch between the cars on your MyPeugeot account, including petrol and diesel ones (fuel level and range).
-- **Private and secure:** no ads, no analytics, no tracking. Sign-in tokens are encrypted on the phone, and remote actions can require your fingerprint. All the code is public, so anyone can check what it does.
-
-### First sign-in (2 minutes)
-
-1. **Have the brand's own app working first** (MyPeugeot, MyCitroën, MyDS, myOpel or MyVauxhall). Your car must already be added there, and you need its 4-digit security code.
-2. **Install:** open the APK link above on your phone → tap the file → allow *Install unknown apps* for your browser when asked.
-3. **Sign in:** open LionFlow → pick your **car brand** and country → **Sign in** → log in on the brand's own page with the same email and password as its app.
-4. **Back to the app:** if Android asks which app should open the link, choose **LionFlow** (not MyPeugeot). The app opens and loads your car.
-5. **Remote control (optional):** tap **Send SMS code** → enter the SMS code and your MyPeugeot security code → **Activate**. Do it once; you can skip it and do it later under Settings › Security.
-6. **Allow location and notifications** when asked — for the map, local weather and car alerts.
-
-> Didn't come back to the app after signing in? Open LionFlow again and repeat step 3. Still stuck? Settings › Security › *Command & error log* shows what went wrong.
-
-## Updates
-
-LionFlow updates itself. When a new version is ready, a popup shows what's new; tap **Install now**. Only versions signed with LionFlow's key are installed. You can turn the check off under Settings › App updates.
-
-## How car data is updated
-
-- **When you open the app** (or switch back to it), LionFlow fetches fresh status, unless it already did so less than 5 minutes ago.
-- **While the app is open**, it updates by itself every 5 minutes.
-- **The refresh button** (on Home and on the widget) updates right away, at any time.
-- **In the background**, Android lets the app check about every 30 minutes. This keeps the widget and the notifications up to date.
-
-Automatic updates can be turned off under Settings › Driving data. The refresh button always works.
-
-## Charging log
-
-The Charging tab logs every charging session: when, from what % to what %, energy (kWh), duration, average and peak kW, AC or DC, and where.
-
-Under **Places & prices**, set your **Home** (sessions within 50 m count as home) and up to **5 known chargers** (work, cabin, a free charger) with a price per kWh. You can also set prices for other AC and DC chargers. The log shows home vs away kWh and estimated costs for the last 30 days. Everything stays on the phone.
-
-## Wear OS watch
-
-LionFlow also has a watch app for Wear OS (Wear OS 3 or newer). It shows battery % and range, kilometres driven today and yesterday, and where the car is parked. You can lock or unlock, flash the lights and start pre-heating, and every action asks you to confirm first.
-
-The watch gets everything through LionFlow on your phone, so your Peugeot sign-in stays on the phone. Keep the phone app updated and signed in.
-
-**Install on the watch:**
-
-1. Download `Watch-LionFlow-1.1.x.apk` from the [latest release](https://github.com/thocubeat/lionflow/releases/latest) to your computer, and install [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) (adb).
-2. On the watch: **Settings → System → About** → tap **Build number** 7 times. Then in **Developer options**, turn on **ADB debugging** and **Wireless debugging**.
-3. Under Wireless debugging, tap **Pair new device** and run these on the computer, using the address and code the watch shows:
-   ```
-   adb pair <IP:port> <code>
-   adb connect <IP:port>
-   adb install Watch-LionFlow-1.1.x.apk
-   ```
-4. Open LionFlow on the watch. Your phone needs to be nearby, with LionFlow installed.
-
-The watch app doesn't update itself. Install a new version the same way when you want it.
+> LionCar is independent and is not made, endorsed or supported by Stellantis, Peugeot, Citroën, DS Automobiles, Opel or
+> Vauxhall. Brand and app names are trademarks of their owners and only say which cars the app works with. Remote
+> commands act on a real car: make sure it is safe to lock, unlock or sound the horn.
 
 ## Features
 
-- **Sign-in** on Peugeot's own page, "Remember me", and app lock with your security code or fingerprint
-- **Status:** battery, range, charging, doors, odometer, position and next service
-- **Remote control:** lock/unlock, lights, horn, pre-heating, and start/stop charging, confirmed with fingerprint or security code
-- **Map:** free vector map (MapLibre + OpenFreeMap) in 2D/3D that you can drag, zoom and rotate, showing you, the car and charging stations — free from OpenStreetMap (no key), or from NOBIL if you add a free API key
-- **EV trip planner** (fully electric cars): type where you are going, and LionFlow draws the route and picks fast-charging stops from your start charge and the lowest charge you accept. Battery use is tuned with your own longest trips. Change how full to charge or how long to stay at each stop, swap chargers, and save addresses. Prices are the operators' usual drop-in prices from a small built-in table (Norway and Germany so far), not live prices
-- **Weather** now and the forecast where you are (MET Norway)
-- **Trips** with CSV export and import, plus your own service history
-- **Home-screen widget:** battery %, charging, range, pre-heating and outside temperature
-- **Notifications:** charging complete or stopped, pre-heating finished, car left unlocked, low battery and service due
-- Light, dark or system theme, km or miles, °C or °F
-- Adapts to foldables and tablets with a side menu and a two-column home screen
+### Stays signed in
+The brand's server hands out a **new refresh token every time** the sign-in is renewed, and the old one stops working. An
+app that loses the new token is signed out — a common complaint about the official apps. LionCar saves every new token in
+the iPhone's **Keychain** before it does anything else, and never runs two renewals at once.
 
-## Security
+### Car tab
+- Fuel or battery level with range; for plug-in hybrids both
+- **Locked / unlocked**, which doors, boot or windows are open, alarm on or off
+- When the car last reported, with **Update now**: wakes the car so it sends a fresh report (the server otherwise only has
+  the last report, which can be hours old when the car is parked)
+- Where the car is parked, which way it faces, and walking directions in Apple Maps
+- Odometer, outside temperature, next service (km and days), engine warm or cold, drive mode and gearbox
+- **Average consumption since new**, from the car's own fuel counter
+- Banners when the car is being driven, when privacy mode is on (it blocks remote commands), and when fog lights are left on
+- Warnings the car reports
+- **All car data**: every value the car sends in plain words, plus the raw data
+- **Customizable**: reorder or hide the cards
 
-- Tokens, the remote-control state and your security code are encrypted with an Android Keystore key (AES-256-GCM).
-- Your password is only typed on Peugeot's own page. The app never sees it.
-- There is no backend and no analytics. The app talks directly to Peugeot, OpenFreeMap, OpenStreetMap (Overpass), Photon and OSRM (trip planner), MET Norway, GitHub (updates) and — only if you choose it — NOBIL.
+### Remote control
+- **Lock, unlock, flash the lights, sound the horn** — over the same MQTT channel and one-time codes as the brand apps
+- Shows each step while a command is on its way ("Waking the car…", "Car received it") and the car's own reason when it
+  refuses (door open, key inside, privacy mode…)
+- **Face ID** before unlocking or sounding the horn
+- One-time setup with an SMS code and your brand app's 4-digit security code
+- A command log for troubleshooting
 
+### Trips
+- **7 days, 30 days, 3 months or 1 year**
+- Distance, duration, average and top speed, fuel or energy used, consumption, **tank level and range at start and end**,
+  map of start and end
+- **Fuel cost** per trip, per period and per tag (set your price per litre)
+- **Tags** (Home, Work…): automatic for trips that start or end at a tag's place, or chosen by hand; totals per tag; filter
+- **CSV export** through the share sheet
 
-## Disclaimer
+### Stats
+- Monthly chart and totals: distance, fuel, cost, trips, time at the wheel, consumption
+- **Fill-ups**, found from the fuel gauge, with estimated litres and cost (the tank size is worked out from the gauge, or
+  set it yourself)
+- Records: longest trip, longest time at the wheel, most in one day, most economical and thirstiest trip
+- Since new: odometer, average consumption, fuel used and its cost
 
-LionFlow is an independent app, not made, endorsed or supported by Stellantis, Peugeot, Citroën, DS Automobiles, Opel or Vauxhall. All brand and app names are trademarks of their owners and are only used to say which cars the app works with. Remote commands act on a real car, so make sure it's safe to lock, unlock, heat or charge it.
+### Notifications
+Car left unlocked, low fuel or battery (you choose the %), service due soon, fog lights left on. iOS decides how often
+the app may check in the background — often every hour or two — so a warning can come late.
 
-## Support LionFlow
+### Every Stellantis powertrain
+- **Petrol and diesel:** tank, range, consumption
+- **48 V mild hybrids** (the "Hybrid" versions of recent Peugeot, Citroën, DS, Opel and Vauxhall models): shown as fuel cars, plus the small 48 V battery's charge
+  and health. Fuel figures are **calibrated per car**: the car's fuel unit is undocumented and differs between models
+  (on some mild hybrids the usual guess reads about 2.5× too high)
+- **Plug-in hybrids and electric cars:** battery, range, charging state, time left, battery health and capacity
 
-LionFlow is free, has no ads and never will. If it makes your car a bit nicer to live with, you may donate what you want, so that I'm able to work with this in my spare time:
+### Languages
+English and Greek (follows the iPhone, or choose under iPhone Settings › LionCar › Language).
 
-[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/thocubeat)
+## LionCar compared with LionFlow (Android)
 
-Thank you! ☕
+| | LionFlow (Android) | LionCar (iPhone) |
+|---|---|---|
+| Brands, countries, sign-in on the brand's own page | ✅ | ✅ |
+| Stays signed in (rotating refresh tokens) | ✅ | ✅ |
+| Status: fuel/battery, range, doors, odometer, position, service | ✅ | ✅ |
+| Every value the car reports, raw data | — | ✅ |
+| Customizable home screen | — | ✅ (reorder / hide cards) |
+| Several cars on one account | ✅ | ✅ |
+| Several accounts at once | ✅ | — |
+| Lock, unlock, lights, horn | ✅ | ✅ |
+| Wake the car for fresh data | ✅ automatically when the app opens | ✅ "Update now" button |
+| Pre-heating now and weekly schedules | ✅ | not yet |
+| Start/stop charging, car's charge limit | ✅ | not yet |
+| LionFlow's own charge limit, charging window, smart schedule | ✅ | not yet (iOS background limits) |
+| Charging log with real kW, home/away, costs | ✅ | not yet |
+| Range estimate when the server reports 0 km | ✅ | not yet |
+| 48 V mild hybrid support | ✅ | ✅ plus 48 V battery and per-car fuel calibration |
+| Trips | ✅ | ✅ 7 days to 1 year |
+| Trip tags | ✅ | ✅ |
+| CSV export / import | ✅ / ✅ | ✅ / — |
+| Fuel cost per trip and month | — | ✅ |
+| Monthly stats, fill-ups, records, average since new | — | ✅ |
+| Own service history | ✅ | not yet |
+| Route recording via the car's Bluetooth | ✅ | — (iOS can't reliably detect it in the background) |
+| Map | ✅ 2D/3D with chargers (OpenStreetMap / NOBIL) | car position (Apple Maps) |
+| EV trip planner with charging stops | ✅ | not yet |
+| Weather and forecast | ✅ | not yet |
+| Notifications | ✅ | ✅ (timing decided by iOS) |
+| Home-screen widget | ✅ | not yet |
+| Watch app | ✅ Wear OS | not yet (Apple Watch) |
+| In-car app | ✅ Android Auto | — (CarPlay needs an Apple entitlement this project can't get) |
+| App lock with fingerprint/code | ✅ | Face ID before unlock and horn |
+| Languages | English, French, German, Spanish, Norwegian | English, Greek |
+| Updates | updates itself | reinstall from source (see below) |
 
-## License
+## Install
 
-GPL-3.0 — see [`LICENSE`](LICENSE). Third-party code, licences and data sources are listed in [`NOTICE.md`](NOTICE.md).
+LionCar is not on the App Store. You build it from this repository and install it on your iPhone with a **free Apple
+ID**, using [xtool](https://xtool.sh) — it builds, signs and installs iPhone apps on **Linux, macOS or Windows (WSL)**,
+without the Xcode IDE.
 
-## Credits
+**You need:** a computer, a USB cable for the iPhone, an Apple ID (a free one is enough), about 15 GB of free disk space
+for the iOS SDK, and your car added in the brand's own app.
 
-The Stellantis sign-in, API and MQTT flow are ported from
-[homeassistant-stellantis-vehicles](https://github.com/andreadegiovine/homeassistant-stellantis-vehicles) (MIT), and the
-one-time-code generator from [psa_car_controller](https://github.com/flobz/psa_car_controller) (GPL-3.0) by Florian Bezannier.
-Thanks to both projects — LionFlow wouldn't exist without them. Details in `NOTICE.md`.
+### 1. Set up the tools (once)
+
+On Linux (Ubuntu/Debian shown; see [xtool's guide](https://xtool.sh/documentation/xtool/installation-linux) for others,
+and [the macOS guide](https://xtool.sh/documentation/xtool/installation-macos) for a Mac):
+
+```bash
+# Swift 6.4, with swiftly
+curl -O "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
+tar zxf "swiftly-$(uname -m).tar.gz" && ./swiftly init      # then open a new terminal
+swiftly install 6.4
+
+# what Swift and the iPhone connection need
+sudo apt-get install -y usbmuxd libimobiledevice-utils binutils libcurl4-openssl-dev libxml2-dev zlib1g-dev
+
+# xtool 1.24
+curl -fL "https://github.com/xtool-org/xtool/releases/download/1.24.0/xtool-$(uname -m).AppImage" -o xtool
+chmod +x xtool && mv xtool ~/.local/bin/
+```
+
+Download **Xcode** as a `.xip` file from [developer.apple.com/download/all](https://developer.apple.com/download/all/?q=Xcode)
+(sign in with your Apple ID; the note that it needs a Mac doesn't matter — xtool only takes the iOS SDK out of it).
+Then run, in a normal terminal:
+
+```bash
+xtool setup
+```
+
+Choose **Password** (works with free Apple IDs), enter your Apple ID, password and the two-factor code, and give the path
+to the Xcode `.xip`.
+
+### 2. Install LionCar
+
+```bash
+git clone https://github.com/t-shock/lionCar-iOS.git
+cd lionCar-iOS
+xtool dev
+```
+
+Connect the iPhone by USB, unlock it, and tap **Trust** when it asks. The first time, iOS asks you to turn on
+**Developer Mode** (Settings › Privacy & Security › Developer Mode; the iPhone restarts), then run `xtool dev` again. If
+iOS says the developer isn't trusted, open Settings › General › VPN & Device Management, tap your Apple ID and **Trust**.
+
+### 3. First start
+
+1. Pick your car's **brand and country** and tap **Sign in** — you log in on the brand's own page.
+2. Optional, for lock/unlock: **Set up remote control** → Send SMS code → enter the SMS code and your brand app's 4-digit
+   security code → Activate. Do this only once: after about 20 SMS activations Stellantis locks remote setup for the
+   account (error `NOK:MAXNBTOOLS`), and unlocking it means reinstalling the brand app.
+3. Allow notifications, and keep **Background App Refresh** on for LionCar (iPhone Settings › LionCar).
+
+## Every 7 days
+
+Apps installed with a **free** Apple ID stop opening after **7 days**. Re-installing renews them, and **nothing is lost**:
+your sign-in, remote control, tags and settings stay on the iPhone.
+
+1. Connect the iPhone by USB and unlock it.
+2. In the `lionCar-iOS` folder run:
+   ```bash
+   git pull     # optional: also gets the latest version
+   xtool dev
+   ```
+
+That's all. A calendar reminder every 6 days helps.
+
+- **Missed it?** LionCar just won't open until you re-install it the same way. Your data is still there.
+- **Don't delete the app** to fix it: deleting it removes its data (you would have to sign in and set up remote control
+  again, which uses up an SMS activation).
+- A free Apple ID can have only 3 such apps installed at once.
+- With a paid Apple Developer account ($99/year) an install lasts a year.
+- Want it to renew on the phone by itself? Build an `.ipa` with `xtool dev build --ipa` and install it with
+  [SideStore](https://sidestore.io), which refreshes apps over Wi-Fi in the background.
+
+## Privacy and security
+
+- LionCar talks only to the brand's servers (sign-in, car data, remote commands) and to Apple Maps. There is no LionCar
+  server and nothing is collected.
+- Sign-in tokens, the remote-control state and your security code are kept in the iPhone's **Keychain**, only on this
+  device (not synced to iCloud). Car data, trips and settings stay in the app.
+- Your password is only ever typed on the brand's own sign-in page; LionCar never sees it.
+- The client IDs in `Core/Sources/LionCore/StellantisConfigsData.swift` are the brand apps' public ones, the same as in
+  LionFlow and the Home Assistant integration — not anyone's personal keys.
+- The test data in `Core/Tests/LionCoreTests/Fixtures` is made up (`scripts/make_fixtures.py`); no real car's data is
+  in this repository.
+
+## For developers
+
+- `Core/` — the car logic (sign-in, API, status and trip parsing, one-time codes, MQTT remote control, stats, tags,
+  warnings) as a plain Swift package. It builds and is tested on Linux: `cd Core && swift test`.
+- `Sources/LionCar/` — the SwiftUI app.
+- `translations/<language>.json` — translations. `scripts/extract_strings.py Sources/LionCar` lists the app's texts;
+  `scripts/make_strings.py` builds the iOS files from the JSON.
+- `design/make_icon.py` — draws the app icon.
+
+## Licence
+
+GPL-3.0 — see `LICENSE`. LionCar is based on LionFlow by thocubeat (GPL-3.0); credits and third-party licences are in
+`NOTICE.md`.

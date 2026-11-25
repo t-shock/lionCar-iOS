@@ -1,0 +1,256 @@
+{
+ "createdAt": "2025-03-09T18:00:00Z",
+ "updatedAt": "2025-03-09T18:00:00Z",
+ "lastPosition": {
+  "type": "Feature",
+  "geometry": {
+   "type": "Point",
+   "coordinates": [
+    2.3522,
+    48.8566
+   ]
+  },
+  "properties": {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "heading": 90,
+   "type": "Acquire",
+   "signalQuality": 7,
+   "fixStatus": "3D"
+  }
+ },
+ "engines": [
+  {
+   "type": "Thermic",
+   "extension": {
+    "thermic": {
+     "coolant": {
+      "temp": 75.0
+     },
+     "oil": {
+      "temp": 20.0
+     },
+     "air": {
+      "temp": 20.0
+     }
+    }
+   },
+   "createdAt": "2025-03-09T18:00:00Z"
+  }
+ ],
+ "powertrain": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "status": "Stopped"
+ },
+ "ignition": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "type": "Stop"
+ },
+ "battery": {
+  "voltage": 13.2,
+  "createdAt": "2025-03-09T18:00:00Z"
+ },
+ "privacy": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "state": "None"
+ },
+ "doorsState": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "lockedStates": [
+   "Locked",
+   "RearDoorsLocked"
+  ],
+  "opening": [
+   {
+    "identifier": "Trunk",
+    "state": "Closed"
+   },
+   {
+    "identifier": "Driver",
+    "state": "Closed"
+   },
+   {
+    "identifier": "RearRight",
+    "state": "Closed"
+   },
+   {
+    "identifier": "RearLeft",
+    "state": "Closed"
+   },
+   {
+    "identifier": "Passenger",
+    "state": "Closed"
+   },
+   {
+    "identifier": "RearWindow",
+    "state": "Closed"
+   }
+  ]
+ },
+ "lightingSystem": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "turn": [
+   {
+    "direction": "Left",
+    "position": "Front",
+    "status": "Off"
+   },
+   {
+    "direction": "Left",
+    "position": "Rear",
+    "status": "Off"
+   },
+   {
+    "direction": "Right",
+    "position": "Front",
+    "status": "Off"
+   },
+   {
+    "direction": "Right",
+    "position": "Rear",
+    "status": "Off"
+   }
+  ],
+  "fog": [
+   {
+    "direction": "Left",
+    "position": "Front",
+    "status": "Off"
+   },
+   {
+    "direction": "Left",
+    "position": "Rear",
+    "status": "Off"
+   },
+   {
+    "direction": "Right",
+    "position": "Front",
+    "status": "Off"
+   },
+   {
+    "direction": "Right",
+    "position": "Rear",
+    "status": "Off"
+   }
+  ]
+ },
+ "service": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "type": "Unknown"
+ },
+ "safety": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "beltStatus": [
+   {
+    "belt": "Omission",
+    "id": "belt-1"
+   },
+   {
+    "belt": "Omission",
+    "id": "belt-2"
+   }
+  ]
+ },
+ "environment": {
+  "luminosity": {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "day": false
+  },
+  "air": {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "temp": 14.5
+  }
+ },
+ "drivingBehavior": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "mode": "Eco"
+ },
+ "odometer": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "mileage": 12000.0
+ },
+ "kinetic": {
+  "createdAt": "2025-03-09T18:00:00Z",
+  "acceleration": 0.0,
+  "lateralAcceleration": 0.0,
+  "speed": 0.0,
+  "moving": false
+ },
+ "alarm": {
+  "status": {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "activation": "Active"
+  }
+ },
+ "transmission": {
+  "gearbox": {
+   "mode": "Auto"
+  }
+ },
+ "energies": [
+  {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "type": "Fuel",
+   "subType": "FossilEnergy",
+   "level": 80.0,
+   "autonomy": 560,
+   "extension": {
+    "fuel": {
+     "consumptions": {
+      "total": 180000.0,
+      "instant": 5.8
+     }
+    }
+   }
+  },
+  {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "type": "Electric",
+   "subType": "ElectricEnergy",
+   "extension": {
+    "electric": {
+     "battery": {
+      "load": {
+       "createdAt": "2025-03-09T18:00:00Z",
+       "residual": 400
+      },
+      "health": {
+       "createdAt": "2025-03-09T18:00:00Z",
+       "capacity": 97,
+       "resistance": 100
+      }
+     },
+     "charging": {
+      "chargingRate": 0
+     }
+    }
+   }
+  }
+ ],
+ "energy": [
+  {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "updatedAt": "2025-03-09T18:00:00Z",
+   "type": "Fuel",
+   "level": 80.0,
+   "autonomy": 560,
+   "consumption": 5.8
+  },
+  {
+   "createdAt": "2025-03-09T18:00:00Z",
+   "updatedAt": "2025-03-09T18:00:00Z",
+   "type": "Electric",
+   "charging": {
+    "chargingRate": 0
+   },
+   "battery": {
+    "load": {
+     "residual": 400
+    },
+    "health": {
+     "capacity": 97,
+     "resistance": 100
+    }
+   }
+  }
+ ]
+}

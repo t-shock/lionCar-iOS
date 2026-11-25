@@ -1,17 +1,16 @@
 # Third-party notices
 
-LionFlow is licensed under the GNU General Public License v3.0 (see `LICENSE`).
+LionCar is licensed under the GNU General Public License v3.0 (see `LICENSE`).
 
-## psa_car_controller — GPL-3.0
-The one-time-password generator for remote commands (`app/src/main/java/no/lionflow/app/api/Otp.kt`)
-is a Kotlin port of the OTP code in [psa_car_controller](https://github.com/flobz/psa_car_controller)
-by Florian Bezannier, licensed under the GNU General Public License v3.0.
+## LionFlow — GPL-3.0
+LionCar is an iPhone port of [LionFlow](https://github.com/thocubeat/lionflow) by thocubeat, an Android app under
+the GNU General Public License v3.0. The car logic in `Core/` (sign-in, API calls, status and trip parsing, powertrain
+detection) is translated from LionFlow's Kotlin code, and `Core/Sources/LionCore/StellantisConfigsData.swift` is
+generated from LionFlow's `stellantis_configs.json`.
 
 ## homeassistant-stellantis-vehicles — MIT
-The Stellantis sign-in, API and MQTT command flow (`StellantisApi.kt`, `RemoteControl.kt`, `VehicleStatus.kt`)
-and `app/src/main/assets/stellantis_configs.json` are based on
+LionFlow's Stellantis sign-in, API and MQTT command flow, and the sign-in configs, are based on
 [homeassistant-stellantis-vehicles](https://github.com/andreadegiovine/homeassistant-stellantis-vehicles).
-Its OTP step is itself a fork of psa_car_controller.
 
 ```
 MIT License
@@ -37,14 +36,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Libraries
-- AndroidX, Jetpack Compose, OkHttp, WorkManager — Apache License 2.0
-- MapLibre Native for Android — BSD 2-Clause
-- Eclipse Paho MQTT client — Eclipse Distribution License 1.0 (BSD-style; used under EDL)
-- Kotlin coroutines — Apache License 2.0
+## psa_car_controller — GPL-3.0
+The one-time-password generator for remote commands (coming to LionCar) is a port of the OTP code in
+[psa_car_controller](https://github.com/flobz/psa_car_controller) by Florian Bezannier (GPL-3.0), via LionFlow.
 
 ## Data and services
-- Map data © OpenStreetMap contributors (ODbL), tiles by OpenFreeMap
-- Weather data from MET Norway (NLOD / CC BY 4.0)
-- Charging stations from OpenStreetMap via the Overpass API (ODbL, default), or from NOBIL (CC BY 3.0) with your own free API key
-- Trip planner: address search by Photon (komoot, data © OpenStreetMap contributors), routes by OSRM (Project OSRM / FOSSGIS servers, data © OpenStreetMap contributors)
+- Maps: Apple Maps (MapKit).

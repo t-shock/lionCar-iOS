@@ -1,7 +1,9 @@
-.gradle/
-build/
-app/build/
-local.properties
-.idea/
-*.iml
+.build/
+.swiftpm/
+xtool/
+*.ipa
 .DS_Store
+# never commit personal car data or tokens
+state.json
+private/
+.bsp/

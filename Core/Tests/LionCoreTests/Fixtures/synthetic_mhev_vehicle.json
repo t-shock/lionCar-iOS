@@ -1,0 +1,16 @@
+{
+ "id": "synthetic-vehicle",
+ "vin": "VR3SYNTHETIC00001",
+ "motorization": "Hybrid",
+ "brand": "Peugeot",
+ "pictures": [
+  "https://example.invalid/car.png"
+ ],
+ "_embedded": {
+  "extension": {
+   "branding": {
+    "brand": "Peugeot"
+   }
+  }
+ }
+}

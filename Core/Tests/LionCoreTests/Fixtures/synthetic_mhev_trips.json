@@ -1,0 +1,619 @@
+[
+ {
+  "id": "trip-1",
+  "startedAt": "2025-03-03T07:30:00Z",
+  "stoppedAt": "2025-03-03T07:55:00Z",
+  "createdAt": "2025-03-03T07:55:00Z",
+  "updatedAt": "2025-03-03T07:55:00Z",
+  "duration": 1500,
+  "distance": 18.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 62,
+    "autonomy": 430
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 59,
+    "autonomy": 410
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 270.0,
+    "avgConsumption": 1500.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 43.2,
+   "maxSpeed": 91
+  },
+  "startMileage": 11580.0,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.238,
+     48.892
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-2",
+  "startedAt": "2025-03-03T16:45:00Z",
+  "stoppedAt": "2025-03-03T17:13:00Z",
+  "createdAt": "2025-03-03T17:13:00Z",
+  "updatedAt": "2025-03-03T17:13:00Z",
+  "duration": 1680,
+  "distance": 18.2,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 59,
+    "autonomy": 410
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 56,
+    "autonomy": 400
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 300.0,
+    "avgConsumption": 1648.3516
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 39.0,
+   "maxSpeed": 92
+  },
+  "startMileage": 11598.0,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-3",
+  "startedAt": "2025-03-04T07:35:00Z",
+  "stoppedAt": "2025-03-04T08:25:00Z",
+  "createdAt": "2025-03-04T08:25:00Z",
+  "updatedAt": "2025-03-04T08:25:00Z",
+  "duration": 3000,
+  "distance": 60.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 56,
+    "autonomy": 400
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 48,
+    "autonomy": 330
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 825.0,
+    "avgConsumption": 1375.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 72.0,
+   "maxSpeed": 93
+  },
+  "startMileage": 11616.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.238,
+     48.892
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-4",
+  "startedAt": "2025-03-04T17:10:00Z",
+  "stoppedAt": "2025-03-04T18:05:00Z",
+  "createdAt": "2025-03-04T18:05:00Z",
+  "updatedAt": "2025-03-04T18:05:00Z",
+  "duration": 3300,
+  "distance": 58.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 48,
+    "autonomy": 330
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 40,
+    "autonomy": 280
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 870.0,
+    "avgConsumption": 1500.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 63.27,
+   "maxSpeed": 94
+  },
+  "startMileage": 11676.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-5",
+  "startedAt": "2025-03-05T12:00:00Z",
+  "stoppedAt": "2025-03-05T12:08:00Z",
+  "createdAt": "2025-03-05T12:08:00Z",
+  "updatedAt": "2025-03-05T12:08:00Z",
+  "duration": 480,
+  "distance": 3.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 40,
+    "autonomy": 280
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 40,
+    "autonomy": 280
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 60.0,
+    "avgConsumption": 2000.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 22.5,
+   "maxSpeed": 95
+  },
+  "startMileage": 11734.2,
+  "faults": [
+   {
+    "fault": "DataLacking",
+    "cause": "Connection"
+   }
+  ],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.238,
+     48.892
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-6",
+  "startedAt": "2025-03-06T08:00:00Z",
+  "stoppedAt": "2025-03-06T08:20:00Z",
+  "createdAt": "2025-03-06T08:20:00Z",
+  "updatedAt": "2025-03-06T08:20:00Z",
+  "duration": 1200,
+  "distance": 12.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 100,
+    "autonomy": 700
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 100,
+    "autonomy": 690
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 210.0,
+    "avgConsumption": 1750.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 36.0,
+   "maxSpeed": 96
+  },
+  "startMileage": 11737.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-7",
+  "startedAt": "2025-03-06T18:00:00Z",
+  "stoppedAt": "2025-03-06T18:30:00Z",
+  "createdAt": "2025-03-06T18:30:00Z",
+  "updatedAt": "2025-03-06T18:30:00Z",
+  "duration": 1800,
+  "distance": 25.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 100,
+    "autonomy": 690
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 97,
+    "autonomy": 670
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 362.5,
+    "avgConsumption": 1450.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 50.0,
+   "maxSpeed": 97
+  },
+  "startMileage": 11749.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.238,
+     48.892
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-8",
+  "startedAt": "2025-03-08T10:00:00Z",
+  "stoppedAt": "2025-03-08T11:10:00Z",
+  "createdAt": "2025-03-08T11:10:00Z",
+  "updatedAt": "2025-03-08T11:10:00Z",
+  "duration": 4200,
+  "distance": 80.0,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 97,
+    "autonomy": 670
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 87,
+    "autonomy": 600
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 1100.0,
+    "avgConsumption": 1375.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 68.57,
+   "maxSpeed": 98
+  },
+  "startMileage": 11774.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  }
+ },
+ {
+  "id": "trip-9",
+  "startedAt": "2025-03-09T15:00:00Z",
+  "stoppedAt": "2025-03-09T15:15:00Z",
+  "createdAt": "2025-03-09T15:15:00Z",
+  "updatedAt": "2025-03-09T15:15:00Z",
+  "duration": 900,
+  "distance": 9.5,
+  "done": true,
+  "startEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 87,
+    "autonomy": 600
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "endEnergies": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "level": 86,
+    "autonomy": 590
+   },
+   {
+    "type": "Electric",
+    "subType": "ElectricEnergy"
+   }
+  ],
+  "energyConsumptions": [
+   {
+    "type": "Fuel",
+    "subType": "FossilEnergy",
+    "consumption": 190.0,
+    "avgConsumption": 2000.0
+   }
+  ],
+  "kinetic": {
+   "avgSpeed": 38.0,
+   "maxSpeed": 99
+  },
+  "startMileage": 11854.2,
+  "faults": [],
+  "startPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.3522,
+     48.8566
+    ]
+   }
+  },
+  "stopPosition": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     2.238,
+     48.892
+    ]
+   }
+  }
+ }
+]
