@@ -7,6 +7,24 @@ servers, so it shows the same car data and sends the same remote commands.
 
 No ads, no analytics, no LionCar server.
 
+## Status: what has been tried on a real car
+
+LionCar is young. Some parts have run against a real car and the brand's real servers; others are ported from LionFlow
+and checked only with automated tests and made-up car data.
+
+| | Tried on a real car | Notes |
+|---|---|---|
+| Sign-in, staying signed in | ✅ | |
+| Car status, map, service | ✅ | on a fuel-powered car |
+| Trips | ✅ | on a fuel-powered car |
+| Remote control setup (SMS + security code) | ✅ | |
+| Stats, fill-ups, fuel cost, tags, CSV, all car data | ⚠️ not confirmed yet | built from the same data as the trips; tested with made-up data |
+| Lock, unlock, lights, horn, **Update now** | ⚠️ not confirmed yet | the commands go out like LionFlow's; first real-car reports pending |
+| Notifications | ⚠️ not confirmed yet | timing depends on iOS |
+| **Everything for electric and plug-in hybrid cars** | ❌ **not tested** | no such car was available — see below |
+
+Reports of what works (or doesn't) on your car are very welcome — please open an issue.
+
 > LionCar is independent and is not made, endorsed or supported by Stellantis, Peugeot, Citroën, DS Automobiles, Opel or
 > Vauxhall. Brand and app names are trademarks of their owners and only say which cars the app works with. Remote
 > commands act on a real car: make sure it is safe to lock, unlock or sound the horn.
@@ -20,6 +38,7 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
 
 ### Car tab
 - Fuel or battery level with range; for plug-in hybrids both
+- Electric and plug-in hybrid cars also get a **Charging** and a **Pre-heating** card (⚠️ untested, see below)
 - **Locked / unlocked**, which doors, boot or windows are open, alarm on or off
 - When the car last reported, with **Update now**: wakes the car so it sends a fresh report (the server otherwise only has
   the last report, which can be hours old when the car is parked)
@@ -54,16 +73,46 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
 - Records: longest trip, longest time at the wheel, most in one day, most economical and thirstiest trip
 - Since new: odometer, average consumption, fuel used and its cost
 
+### Electric and plug-in hybrid cars — ⚠️ untested on a real car
+> **⚠️ None of this has been tried on a real electric or plug-in hybrid car yet.** It is ported from LionFlow, where it
+> works, and the logic is covered by automated tests with made-up car reports — but no such car was available for
+> testing. The app shows a warning under each of these screens. Try it in **demo mode** first, and if you own such a car,
+> please report what works and what doesn't. Commands like "Charge now" act on your real car.
+
+- **Charging card:** charging state, **real charging power in kW** (worked out from the energy going into the battery;
+  estimated until two reports are in), time left and the time it reaches your limit or 100 %
+- **Start / stop charging**, and the car's own limit: **daily limit or full charge for a trip**
+- **"Charged to X %" notification** at the time the car should reach your target — iOS delivers it on time even when
+  LionCar isn't running, so it is the dependable way on iPhone to stop at a %
+- **LionCar's own charge limit** and **charging times** ("only charge between 22:00 and 06:00"). Off by default. ⚠️ They
+  only act while LionCar runs (open, or a background check iOS allowed — often only every hour or two), so the car can
+  charge past the limit or outside the times. The car's own daily limit is more reliable
+- **Pre-heating** now or stop, and the car's **4 weekly schedules** ("ready at 07:15, Monday to Friday"); plug-in hybrids
+  are only asked when the battery has at least 50 % or the car is plugged in, like the official app
+- **Charging log:** every session LionCar sees, with time, % from–to, kWh, duration, average and peak kW, AC or DC,
+  where (home, up to 5 known chargers, or the street address), estimated cost; totals for the last 30 days, home vs.
+  away; a **battery-health estimate** from the sessions. ⚠️ A charge that starts and ends while LionCar isn't running is
+  missed (LionFlow on Android checks every ~10 minutes; iOS doesn't allow that)
+- **Range estimate** when the server reports 0 km, and LionFlow's fix for cars that suddenly report a lower level with
+  the same energy in the battery
+
+### Demo mode
+**Settings › Try with a sample electric car** (or on the sign-in screen, without an account) shows a made-up electric
+car with charging, pre-heating, trips and a charging log. Nothing is sent to any car, and your real account and
+remote-control setup are left alone. Leave it with **Exit**.
+
 ### Notifications
-Car left unlocked, low fuel or battery (you choose the %), service due soon, fog lights left on. iOS decides how often
-the app may check in the background — often every hour or two — so a warning can come late.
+Car left unlocked, low fuel or battery (you choose the %), service due soon, fog lights left on — and for electric cars
+"Charged to X %" (⚠️ untested). iOS decides how often the app may check in the background — often every hour or two — so
+a warning can come late.
 
 ### Every Stellantis powertrain
 - **Petrol and diesel:** tank, range, consumption
 - **48 V mild hybrids** (the "Hybrid" versions of recent Peugeot, Citroën, DS, Opel and Vauxhall models): shown as fuel cars, plus the small 48 V battery's charge
   and health. Fuel figures are **calibrated per car**: the car's fuel unit is undocumented and differs between models
   (on some mild hybrids the usual guess reads about 2.5× too high)
-- **Plug-in hybrids and electric cars:** battery, range, charging state, time left, battery health and capacity
+- **Plug-in hybrids and electric cars:** battery, range, charging state, time left, battery health and capacity, and
+  the charging and pre-heating features above (untested on a real car)
 
 ### Languages
 English and Greek (follows the iPhone, or choose under iPhone Settings › LionCar › Language).
@@ -81,11 +130,15 @@ English and Greek (follows the iPhone, or choose under iPhone Settings › LionC
 | Several accounts at once | ✅ | — |
 | Lock, unlock, lights, horn | ✅ | ✅ |
 | Wake the car for fresh data | ✅ automatically when the app opens | ✅ "Update now" button |
-| Pre-heating now and weekly schedules | ✅ | not yet |
-| Start/stop charging, car's charge limit | ✅ | not yet |
-| LionFlow's own charge limit, charging window, smart schedule | ✅ | not yet (iOS background limits) |
-| Charging log with real kW, home/away, costs | ✅ | not yet |
-| Range estimate when the server reports 0 km | ✅ | not yet |
+| Pre-heating now and weekly schedules | ✅ | ✅ ⚠️ untested on a real car |
+| Start/stop charging, car's charge limit (daily / full) | ✅ | ✅ ⚠️ untested on a real car |
+| Charging power in kW, time to limit | ✅ | ✅ ⚠️ untested on a real car |
+| "Charged to X %" reminder | phone alarm | ✅ notification ⚠️ untested on a real car |
+| App's own charge limit and charging window | ✅ checks every ~10 min | ✅ ⚠️ untested; only acts while the app runs |
+| Charge past the car's limit, smart (weather) schedule | ✅ | — (needs checks every few minutes) |
+| Charging log with real kW, home/away, costs, battery health | ✅ | ✅ ⚠️ untested; misses charges while the app isn't running |
+| Range estimate when the server reports 0 km | ✅ | ✅ ⚠️ untested on a real car |
+| Demo mode with a sample electric car | ✅ | ✅ (also while signed in) |
 | 48 V mild hybrid support | ✅ | ✅ plus 48 V battery and per-car fuel calibration |
 | Trips | ✅ | ✅ 7 days to 1 year |
 | Trip tags | ✅ | ✅ |
@@ -164,6 +217,8 @@ iOS says the developer isn't trusted, open Settings › General › VPN & Device
    account (error `NOK:MAXNBTOOLS`), and unlocking it means reinstalling the brand app.
 3. Allow notifications, and keep **Background App Refresh** on for LionCar (iPhone Settings › LionCar).
 
+No car, or want to look around first? **Try with a sample car** on the sign-in screen opens demo mode.
+
 ## Every 7 days
 
 Apps installed with a **free** Apple ID stop opening after **7 days**. Re-installing renews them, and **nothing is lost**:
@@ -188,8 +243,8 @@ That's all. A calendar reminder every 6 days helps.
 
 ## Privacy and security
 
-- LionCar talks only to the brand's servers (sign-in, car data, remote commands) and to Apple Maps. There is no LionCar
-  server and nothing is collected.
+- LionCar talks only to the brand's servers (sign-in, car data, remote commands) and to Apple's map services (the maps,
+  and street names for the charging log). There is no LionCar server and nothing is collected.
 - Sign-in tokens, the remote-control state and your security code are kept in the iPhone's **Keychain**, only on this
   device (not synced to iCloud). Car data, trips and settings stay in the app.
 - Your password is only ever typed on the brand's own sign-in page; LionCar never sees it.
@@ -201,7 +256,8 @@ That's all. A calendar reminder every 6 days helps.
 ## For developers
 
 - `Core/` — the car logic (sign-in, API, status and trip parsing, one-time codes, MQTT remote control, stats, tags,
-  warnings) as a plain Swift package. It builds and is tested on Linux: `cd Core && swift test`.
+  warnings, charging power and log, charge limit and window, demo car) as a plain Swift package. It builds and is tested
+  on Linux: `cd Core && swift test`. All test data is made up (`scripts/make_fixtures.py`, `EVTests.swift`).
 - `Sources/LionCar/` — the SwiftUI app.
 - `translations/<language>.json` — translations. `scripts/extract_strings.py Sources/LionCar` lists the app's texts;
   `scripts/make_strings.py` builds the iOS files from the JSON.

@@ -99,7 +99,7 @@ extension AppModel {
 
     /// Looks at the latest status and posts a notification for each new warning.
     func checkAlerts() {
-        guard let st = serverStatus else { return }
+        guard !isDemo, let st = serverStatus else { return }
         var state = alertState
         let alerts = CarAlerts.check(st, carName: carName, settings: alertSettings, state: &state)
         if state != alertState { alertState = state }
@@ -147,6 +147,7 @@ extension AppModel {
     /// Runs in the background: fresh status and the warning check.
     func backgroundRefresh() async {
         Self.scheduleBackgroundRefresh()
+        guard !isDemo else { return }
         // After a cold start in the background, the start-up load may still be running: wait for it (up to a minute).
         for _ in 0..<120 where phase == .loading || refreshing { try? await Task.sleep(nanoseconds: 500_000_000) }
         guard phase == .ready else { return }

@@ -11,7 +11,7 @@ final class AppModel {
 
     private let store = KeychainStore()
     let defaults = UserDefaults.standard
-    private var api: StellantisAPI
+    var api: StellantisAPI
     private(set) var remote: RemoteControl
 
     var phase: Phase = .signedOut
@@ -48,6 +48,26 @@ final class AppModel {
 
     /// Lock state shown after a command until the car reports again (its status lags behind).
     private var holdLock: (value: Bool, since: Date)?
+    /// Same for pre-heating.
+    var holdPrecond: (value: Bool, since: Date)?
+
+    // Electric cars (see AppModel+EV.swift)
+    /// Demo mode: a sample electric car; nothing is sent anywhere.
+    var demo: DemoCar?
+    var isDemo: Bool { demo != nil }
+    /// Changes whenever the shown car changes (demo on/off, another car, sign-out). Work started before a change
+    /// checks it after every wait and drops its result, so the real car's and the demo car's data never mix.
+    var epoch = 0
+    var power: ChargePower?
+    var chargeLog: ChargeLog?
+    /// Mirrors of the charge log, so the screens update.
+    var chargeSessions: [ChargeSession] = []
+    var activeSession: ChargeSession?
+    var chargePlaces = PlacesConfig()
+    var chargeSettings = AppModel.loadChargeSettings() { didSet { saveChargeSettings() } }
+    var targetNotify: Bool = UserDefaults.standard.object(forKey: "targetNotify") as? Bool ?? true {
+        didSet { defaults.set(targetNotify, forKey: "targetNotify") }
+    }
 
     init() {
         let b = Brand.of(UserDefaults.standard.string(forKey: "brand"))
@@ -60,6 +80,7 @@ final class AppModel {
         if api.isSignedIn {
             vehicles = api.cachedVehicles()
             vehicle = api.pick(vehicles)
+            makeChargeData()
             loadCache()
             phase = vehicle == nil ? .loading : .ready
             Task { await afterSignIn(firstTime: vehicle == nil) }
@@ -94,18 +115,22 @@ final class AppModel {
         }
     }
 
-    private func afterSignIn(firstTime: Bool) async {
+    func afterSignIn(firstTime: Bool) async {
+        let e = epoch
         do {
             try await api.loadUserInfo()
             let list = try await api.vehicles()
+            guard e == epoch, !isDemo else { return }
             vehicles = list
             vehicle = api.pick(list)
+            makeChargeData()
             guard vehicle != nil else {
                 message = String(localized: "No car found on this account — add it in the \(brand.app) app first")
                 phase = .signedOut; api.signOut(); return
             }
             phase = .ready
             await refresh()
+            guard e == epoch else { return }
             if UIApplication.shared.applicationState == .background { return }
             await loadTrips(recentOnly: true)
             if loadedTripDays < tripDays { await loadTrips() }
@@ -125,6 +150,8 @@ final class AppModel {
     }
 
     func signOut() {
+        if isDemo { exitDemo(); return }
+        epoch += 1
         let r = remote
         Task { await r.forget() }
         api.signOut()
@@ -134,8 +161,10 @@ final class AppModel {
     }
 
     func select(_ v: Vehicle) {
+        epoch += 1
         api.select(vin: v.vin)
         vehicle = v; status = nil; trips = []; alerts = []; rawTrips = []; loadedTripDays = 0
+        makeChargeData()
         loadCache()
         Task { await refresh(); await loadTrips() }
     }
@@ -163,23 +192,36 @@ final class AppModel {
         return v > 0 ? v : nil
     }
 
-    private var rawStatus: JSON?
+    var rawStatus: JSON?
     /// The status exactly as the server sent it (without the lock state held after a command).
-    private(set) var serverStatus: VehicleStatus?
-    private var rawMaintenance: JSON?
-    private var rawTrips: [JSON] = []
+    var serverStatus: VehicleStatus?
+    var rawMaintenance: JSON?
+    var rawTrips: [JSON] = []
 
     func refresh() async {
-        guard let v = vehicle, !refreshing else { return }
+        guard let v = vehicle else { return }
+        if let demo {
+            rawStatus = demo.statusJSON(); rawMaintenance = nil; statusMissing = false; lastRefresh = .now
+            reparse()
+            return
+        }
+        guard !refreshing else { return }
         refreshing = true
         defer { refreshing = false }
+        let e = epoch
         do {
+            var missing = false
             let s: JSON
-            do { s = try await api.status(v); statusMissing = false }
-            catch let e as APIError where e.noData { s = [:]; statusMissing = true }
+            do { s = try await api.status(v) }
+            catch let err as APIError where err.noData { s = [:]; missing = true }
+            let maintenance = try await api.maintenance(v)
+            let newAlerts = (try? await api.alerts(v)) ?? []
+            // The shown car changed meanwhile (demo, another car): drop this answer.
+            guard e == epoch, vehicle?.vin == v.vin else { return }
+            statusMissing = missing
             rawStatus = s
-            rawMaintenance = try await api.maintenance(v)
-            alerts = (try? await api.alerts(v)) ?? []
+            rawMaintenance = maintenance
+            alerts = newAlerts
             lastRefresh = .now
             reparse()
             if let st = status, let scale = FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm) {
@@ -187,6 +229,8 @@ final class AppModel {
             }
             saveCache()
             checkAlerts()
+            scheduleTargetNotification()
+            Task { await self.runChargeAutomation() }
         } catch is AuthExpiredError {
             expired()
         } catch {
@@ -202,7 +246,7 @@ final class AppModel {
         }
     }
     /// How far back the trips in memory reach (days).
-    private(set) var loadedTripDays = 0
+    var loadedTripDays = 0
     /// The longest period asked for while a load was already running; loaded as soon as it finishes.
     private var pendingTripDays = 0
 
@@ -216,6 +260,7 @@ final class AppModel {
     /// them with what is already loaded.
     func loadTrips(days: Int? = nil, recentOnly: Bool = false) async {
         guard let v = vehicle else { return }
+        if isDemo { rawTrips = DemoCar.tripsJSON(); loadedTripDays = 365; reparseTrips(); return }
         let want = recentOnly && loadedTripDays >= 14 ? 14 : max(days ?? tripDays, 7)
         if tripsLoading { pendingTripDays = max(pendingTripDays, want); return }
         tripsLoading = true
@@ -231,8 +276,10 @@ final class AppModel {
     }
 
     private func fetchTrips(_ v: Vehicle, days want: Int) async {
+        let e = epoch
         do {
             let fresh = try await api.allTrips(v, from: Date().addingTimeInterval(-Double(want) * 86_400))
+            guard e == epoch, vehicle?.vin == v.vin else { return }
             var byID: [String: JSON] = [:]
             for t in rawTrips + fresh { byID[t.optString("id")] = t }
             rawTrips = Array(byID.values)
@@ -246,10 +293,15 @@ final class AppModel {
         }
     }
 
-    private func reparse() {
+    func reparse() {
         guard let v = vehicle, let s = rawStatus else { return }
         var st = v.parseStatus(s, maintenance: rawMaintenance, override: mildHybridOverride)
+        st = recordCharging(st)
         serverStatus = st
+        if let h = holdPrecond {
+            if let at = st.updatedAt, at > h.since || Date().timeIntervalSince(h.since) > 300 { holdPrecond = nil }
+            else { st.preconditioningOn = h.value }
+        }
         if let h = holdLock {
             // Keep showing what was sent until the car reports something newer than the command.
             if let at = st.updatedAt, at > h.since || Date().timeIntervalSince(h.since) > 300 { holdLock = nil }
@@ -259,7 +311,7 @@ final class AppModel {
         reparseTrips()
     }
 
-    private func reparseTrips() {
+    func reparseTrips() {
         let mild = status?.isMildHybrid ?? (vehicle?.isMildHybrid(override: mildHybridOverride) ?? false)
         let scale = status?.energyType == "Electric" ? nil : litersPerUnit
         trips = rawTrips.map { Trip.parse($0, mildHybrid: mild, litersPerUnit: scale) }
@@ -268,11 +320,12 @@ final class AppModel {
 
     // MARK: Remote control
 
-    var remoteReady: Bool { remote.isSetUp }
+    var remoteReady: Bool { isDemo || remote.isSetUp }
     /// False when the brand has no remote-services link for this account: then don't offer setup at all.
-    var remotePossible: Bool { api.customerID != nil || remote.isSetUp }
+    var remotePossible: Bool { isDemo || api.customerID != nil || remote.isSetUp }
 
     func requestSMS() async {
+        guard !isDemo else { return }
         setupBusy = true
         defer { setupBusy = false }
         do {
@@ -284,6 +337,7 @@ final class AppModel {
     }
 
     func activateRemote(sms: String, pin: String) async -> Bool {
+        guard !isDemo else { return false }
         setupBusy = true
         defer { setupBusy = false }
         do {
@@ -308,6 +362,7 @@ final class AppModel {
     }
 
     func forgetRemote() {
+        guard !isDemo else { return }
         let r = remote
         Task { await r.forget() }
     }
@@ -323,9 +378,21 @@ final class AppModel {
     }
 
     @discardableResult
-    private func runCommand(_ label: String, confirmWith reason: String?, optimistic: ((inout VehicleStatus) -> Void)? = nil,
-                            quiet: Bool = false,
-                            _ block: @escaping (RemoteControl, Tracker) async -> CommandResult) async -> CommandResult? {
+    func runCommand(_ label: String, confirmWith reason: String?, optimistic: ((inout VehicleStatus) -> Void)? = nil,
+                    quiet: Bool = false, demoCommand: String? = nil, demoPrograms: [Program]? = nil,
+                    _ block: @escaping (RemoteControl, Tracker) async -> CommandResult) async -> CommandResult? {
+        if let demo {
+            // Demo: nothing is sent; the sample car just changes.
+            guard commandLabel == nil else { return nil }
+            commandLabel = label
+            commandProgress = "Sending…"
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            if let demoCommand { demo.apply(demoCommand, programs: demoPrograms) }
+            commandLabel = nil; commandProgress = nil
+            await refresh()
+            if !quiet { showToast(String(localized: "\(L(label)) — done (demo)")) }
+            return .success
+        }
         guard remote.isSetUp else { message = String(localized: "Set up remote control first (Settings › Remote control)"); return nil }
         guard commandLabel == nil else { return nil }
         if let reason, !(await confirm(reason)) { return nil }
@@ -335,7 +402,7 @@ final class AppModel {
             onProgress: { p in Task { @MainActor in self.commandProgress = p } },
             // Arrives later only when we stopped waiting at "delivered".
             onFinal: { r in Task { @MainActor in
-                if case .failed(let why) = r { self.holdLock = nil; self.reparse(); self.message = String(localized: "\(L(label)) didn't go through: \(why)") }
+                if case .failed(let why) = r { self.holdLock = nil; self.holdPrecond = nil; self.reparse(); self.message = String(localized: "\(L(label)) didn't go through: \(why)") }
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await self.refresh()
             } })
@@ -354,6 +421,7 @@ final class AppModel {
             }
         case .failed(let why):
             holdLock = nil
+            holdPrecond = nil
             reparse()
             message = String(localized: "\(L(label)): \(why)")
         }
@@ -362,7 +430,8 @@ final class AppModel {
 
     func lockCar(_ lock: Bool) async {
         await runCommand(lock ? "Lock" : "Unlock", confirmWith: lock ? nil : "Unlock your car",
-                         optimistic: { [weak self] st in st.locked = lock; self?.holdLock = (lock, Date()) }) { r, t in await r.lock(lock, t) }
+                         optimistic: { [weak self] st in st.locked = lock; self?.holdLock = (lock, Date()) },
+                         demoCommand: lock ? "lock" : "unlock") { r, t in await r.lock(lock, t) }
     }
 
     func horn() async { await runCommand("Horn", confirmWith: "Sound the horn") { r, t in await r.horn(t) } }
@@ -373,6 +442,7 @@ final class AppModel {
 
     /// Wakes the car so it reports now, then checks every 10 s (up to 2 minutes) until a newer report arrives.
     func wakeAndRefresh() async {
+        if isDemo { await refresh(); showToast(String(localized: "Updated — the car just reported")); return }
         guard !updatingFromCar else { return }
         updatingFromCar = true
         defer { updatingFromCar = false }
@@ -397,7 +467,7 @@ final class AppModel {
 
     /// Opens the remote-control connection early, so a command goes out faster.
     func warmUpRemote() {
-        guard remote.isSetUp else { return }
+        guard !isDemo, remote.isSetUp else { return }
         let r = remote
         Task { await r.warmUp() }
     }
@@ -405,11 +475,13 @@ final class AppModel {
     // MARK: Car tab layout
 
     enum HomeCard: String, CaseIterable, Identifiable {
-        case energy, doors, map, details
+        case energy, charging, climate, doors, map, details
         var id: String { rawValue }
         var title: String {
             switch self {
             case .energy: "Fuel / battery and range"
+            case .charging: "Charging"
+            case .climate: "Pre-heating"
             case .doors: "Locks and remote control"
             case .map: "Where the car is"
             case .details: "Odometer, service and more"
@@ -418,6 +490,8 @@ final class AppModel {
         var icon: String {
             switch self {
             case .energy: "gauge.with.dots.needle.67percent"
+            case .charging: "bolt.car"
+            case .climate: "fan"
             case .doors: "lock.fill"
             case .map: "map"
             case .details: "square.grid.2x2"
@@ -453,8 +527,8 @@ final class AppModel {
         return dir.appendingPathComponent("car-\(vin.suffix(6)).json")
     }
 
-    private func saveCache() {
-        guard let url = cacheURL else { return }
+    func saveCache() {
+        guard !isDemo, let url = cacheURL else { return }
         var j: JSON = ["trips": rawTrips]
         if let rawStatus { j["status"] = rawStatus }
         if let rawMaintenance { j["maintenance"] = rawMaintenance }
@@ -463,7 +537,7 @@ final class AppModel {
         try? JSONValue.data(j).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
-    private func loadCache() {
+    func loadCache() {
         guard let url = cacheURL, let d = try? Data(contentsOf: url), let j = JSONValue.parse(d) as? JSON else { return }
         rawStatus = j.obj("status")
         rawMaintenance = j.obj("maintenance")

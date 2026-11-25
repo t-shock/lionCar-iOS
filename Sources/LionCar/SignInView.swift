@@ -45,6 +45,9 @@ struct SignInView: View {
                     Text("You sign in on \(brand.display)'s own page with the same e-mail and password as the \(brand.app) app. LionCar never sees your password.")
                 }
                 Section {
+                    Button("Try with a sample car (no account)") { model.enterDemo() }
+                }
+                Section {
                     DisclosureGroup("What needs a subscription?", isExpanded: $showNotice) {
                         Text(brand.subscriptionNotice()).font(.footnote)
                     }

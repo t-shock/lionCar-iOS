@@ -10,6 +10,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    if model.isDemo { DemoBanner() }
                     header
                     if let label = model.commandLabel { progressStrip(label) }
                     if let st = model.status { notices(st) }
@@ -18,6 +19,8 @@ struct HomeView: View {
                         ForEach(model.visibleCards) { c in
                             switch c {
                             case .energy: energyCard(st)
+                            case .charging: if st.energyType != "Fuel" && Caps.battery(st) { ChargingCard(st: st) }
+                            case .climate: if st.energyType != "Fuel" && Caps.climate(st) { ClimateCard(st: st) }
                             case .doors: locksCard(st)
                             case .map: if Caps.position(st), let lat = st.lat, let lon = st.lon { mapCard(lat: lat, lon: lon) }
                             case .details: detailsGrid(st)
@@ -312,7 +315,10 @@ struct CustomizeHomeView: View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(model.homeOrder) { c in
+                    ForEach(model.homeOrder.filter { c in
+                        // Charging and pre-heating only for electric and plug-in hybrid cars
+                        (c != .charging && c != .climate) || model.status.map { $0.energyType != "Fuel" } ?? false
+                    }) { c in
                         Toggle(isOn: Binding(get: { !model.hiddenCards.contains(c) }, set: { on in
                             if on { model.hiddenCards.remove(c) } else { model.hiddenCards.insert(c) }
                         })) {

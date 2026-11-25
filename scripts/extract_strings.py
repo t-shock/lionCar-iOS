@@ -4,7 +4,7 @@ Usage: extract_strings.py SOURCES_DIR > keys.json"""
 import json, os, re, sys
 
 CALLS = r"(?<![A-Za-z_])(?:accessibilityLabel|Text|Label|Button|Toggle|Picker|Stepper|LabeledContent|Section|TextField|SecureField|ProgressView|DisclosureGroup|" \
-        r"navigationTitle|confirmationDialog|alert|Marker|tile|row|notice|record|value|stat|bigButton|smallButton|L)"
+        r"navigationTitle|confirmationDialog|alert|Marker|DatePicker|action|price|tile|row|notice|record|value|stat|bigButton|smallButton|L)"
 START = re.compile(r"(?:" + CALLS + r"\(\s*|String\(localized:\s*)\"")
 
 def literal(src, i):
@@ -22,7 +22,7 @@ def literal(src, i):
             depth += {"(": 1, ")": -1}.get(c, 0)
         out += c; i += 1
     return out
-INT_HINTS = ("Int(", ".count", "m.trips", "pct", "lowPct")
+INT_HINTS = ("Int(", ".count", "m.trips", "pct", "Pct", ".slot", ".sessions")
 INT_EXPRS = {"m", "m / 60", "m % 60"}   # whole minutes in Fmt.duration
 
 def key(lit):
@@ -48,7 +48,12 @@ EXTRA = ["48 V mild hybrid", "Plug-in hybrid", "Hybrid (type unknown)", "Electri
          "7 days", "30 days", "3 months", "1 year", "Flash lights", "Updating from the car",
          "Connecting…", "Sent — waiting for the car…", "Waking the car…", "Checking the car…", "Car received it",
          "Car didn't answer — trying again…", "Car was busy — trying again…", "Waiting for the car to report…",
-         "Distance", "Fuel", "Cost", "Charges", "Fill-ups", "Sending…", "Driving now", "Engine on", "Driving now · %lld km/h"]
+         "Distance", "Fuel", "Cost", "Charges", "Fill-ups", "Sending…", "Driving now", "Engine on", "Driving now · %lld km/h",
+         # electric cars: command labels, card texts chosen in code, place names from the core
+         "Pre-heating", "Stop pre-heating", "Pre-heat now", "Pre-heating is on", "Pre-heating is off", "Saving schedule",
+         "Daily charge limit", "Full charge for a trip", "Charge now", "Stop charging", "Charging times on",
+         "Charge limit", "Home", "Away", "Unknown place", "Known charger", "Charging",
+         "Set home to where the car is now", "Move home to where the car is now"]
 keys = {k: "extra" for k in EXTRA}
 for root, _, files in os.walk(sys.argv[1]):
     for f in sorted(files):
