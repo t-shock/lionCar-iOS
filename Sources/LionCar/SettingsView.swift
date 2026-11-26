@@ -4,6 +4,7 @@ import LionCore
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var confirmSignOut = false
+    @State private var choosingDemo = false
 
     var body: some View {
         NavigationStack {
@@ -43,12 +44,12 @@ struct SettingsView: View {
                     if model.isDemo {
                         Button("Exit demo mode") { model.exitDemo() }
                     } else {
-                        Button("Try with a sample electric car") { model.enterDemo() }
+                        Button("Try with a sample car") { choosingDemo = true }
                     }
                 } header: {
                     Text("Demo")
                 } footer: {
-                    Text("Shows a made-up electric car, to see the charging and pre-heating screens. Nothing is sent to a car; your account and remote-control setup stay as they are.")
+                    Text("Shows a made-up electric car, plug-in hybrid or petrol / diesel car, to see every screen. Nothing is sent to a car; your account and remote-control setup stay as they are.")
                 }
                 Section("About") {
                     LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")
@@ -57,6 +58,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .sheet(isPresented: $choosingDemo) { DemoSetupView() }
             .confirmationDialog("Sign out of \(model.brand.app)?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) { model.signOut() }
             }

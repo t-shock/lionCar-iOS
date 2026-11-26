@@ -94,6 +94,15 @@ extension AppModel {
 
     // MARK: Commands
 
+    /// Turns off the car's scheduled (delayed) start, so it charges as soon as it is plugged in. "Stop charging" (also
+    /// from the charge limit or charging times) works by setting that scheduled start, so it can stay on afterwards.
+    func clearScheduledStart() async {
+        let h = status?.nextDelayedHour ?? 1, m = status?.nextDelayedMinute ?? 0
+        await runCommand("Turn off scheduled start", confirmWith: nil,
+                         optimistic: { s in s.nextDelayedHour = nil; s.nextDelayedMinute = nil },
+                         demoCommand: "clearSchedule") { r, t in await r.charging(startNow: true, hour: h, minute: m, t) }
+    }
+
     /// Plug-in hybrids only pre-heat on the battery, and the car ignores the request below 50 % unless plugged in.
     func preconditioning(_ on: Bool) async {
         guard let st = status else { return }
@@ -230,16 +239,17 @@ extension AppModel {
 
     // MARK: Demo mode
 
-    /// Shows a sample electric car. Your real account, remote-control setup and data are left alone.
-    func enterDemo() {
+    /// Shows a sample car of the chosen kind and brand. Your real account, remote-control setup and data are left alone.
+    func enterDemo(kind: DemoCar.Kind = .electric, brand: Brand = .peugeot) {
         epoch += 1
-        demo = DemoCar()
-        vehicles = [DemoCar.vehicle]
-        vehicle = DemoCar.vehicle
+        let d = DemoCar(kind: kind, brand: brand)
+        demo = d
+        vehicles = [d.vehicle]
+        vehicle = d.vehicle
         rawTrips = []; loadedTripDays = 0; alerts = []
         makeChargeData(store: MemoryStore())
-        chargeLog?.places = DemoCar.places()
-        chargeLog?.replace(DemoCar.sessions())
+        if kind != .fuel { chargeLog?.places = DemoCar.places() }
+        chargeLog?.replace(d.sessions())
         syncChargeLog()
         phase = .ready
         Task { await refresh(); await loadTrips() }

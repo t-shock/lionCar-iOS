@@ -8,6 +8,7 @@
     <array>
         <string>en</string>
         <string>el</string>
+        <string>nl</string>
     </array>
     <key>CFBundleDisplayName</key>
     <string>LionCar</string>

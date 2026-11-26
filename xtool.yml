@@ -5,3 +5,4 @@ iconPath: Resources/AppIcon.png
 resources:
 - Resources/en.lproj
 - Resources/el.lproj
+- Resources/nl.lproj

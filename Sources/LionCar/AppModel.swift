@@ -203,6 +203,9 @@ final class AppModel {
         if let demo {
             rawStatus = demo.statusJSON(); rawMaintenance = nil; statusMissing = false; lastRefresh = .now
             reparse()
+            if let st = status, let scale = FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm) {
+                defaults.set(scale, forKey: "fuelScale_\(v.vin)")
+            }
             return
         }
         guard !refreshing else { return }
@@ -260,7 +263,7 @@ final class AppModel {
     /// them with what is already loaded.
     func loadTrips(days: Int? = nil, recentOnly: Bool = false) async {
         guard let v = vehicle else { return }
-        if isDemo { rawTrips = DemoCar.tripsJSON(); loadedTripDays = 365; reparseTrips(); return }
+        if let demo { rawTrips = demo.tripsJSON(); loadedTripDays = 365; reparseTrips(); return }
         let want = recentOnly && loadedTripDays >= 14 ? 14 : max(days ?? tripDays, 7)
         if tripsLoading { pendingTripDays = max(pendingTripDays, want); return }
         tripsLoading = true

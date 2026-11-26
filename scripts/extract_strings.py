@@ -53,7 +53,10 @@ EXTRA = ["48 V mild hybrid", "Plug-in hybrid", "Hybrid (type unknown)", "Electri
          "Pre-heating", "Stop pre-heating", "Pre-heat now", "Pre-heating is on", "Pre-heating is off", "Saving schedule",
          "Daily charge limit", "Full charge for a trip", "Charge now", "Stop charging", "Charging times on",
          "Charge limit", "Home", "Away", "Unknown place", "Known charger", "Charging",
-         "Set home to where the car is now", "Move home to where the car is now"]
+         "Set home to where the car is now", "Move home to where the car is now",
+         # scheduled start and the demo car choice (texts chosen in code)
+         "Turn off", "Turn off scheduled start", "Turn off scheduled start?", "Turn off scheduled start? Charging starts now.",
+         "Battery, charging and pre-heating", "Battery for short trips, fuel for long ones", "Fuel level, fuel cost and statistics"]
 keys = {k: "extra" for k in EXTRA}
 for root, _, files in os.walk(sys.argv[1]):
     for f in sorted(files):

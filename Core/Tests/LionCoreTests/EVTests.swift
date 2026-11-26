@@ -189,15 +189,53 @@ private func ev(_ level: Double, residualKwh: Double?, charging: Bool, plugged: 
 
 @Test func demoCarIsAnElectricCar() {
     let demo = DemoCar()
-    let st = DemoCar.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
+    let st = demo.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
     #expect(st.energyType == "Electric")
     #expect(st.isCharging && st.plugged)
     #expect(st.capacityKwh == 73)
     #expect(st.programs.count == 2)
+    #expect(st.nextDelayedHour == 1)
     #expect(Caps.battery(st) && Caps.climate(st))
     demo.apply("chargeStop"); demo.apply("precondOn"); demo.apply("unlock")
-    let after = DemoCar.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
+    let after = demo.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
     #expect(!after.isCharging && after.preconditioningOn && after.locked == false)
-    #expect(DemoCar.tripsJSON().map { Trip.parse($0) }.allSatisfy { $0.kwh != nil })
-    #expect(DemoCar.sessions().count == 14)
+    demo.apply("clearSchedule")
+    let cleared = demo.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
+    #expect(cleared.nextDelayedHour == nil && cleared.isCharging)   // plugged in: charges as soon as the schedule is off
+    #expect(demo.tripsJSON().map { Trip.parse($0) }.allSatisfy { $0.kwh != nil })
+    #expect(demo.sessions().count == 14)
+}
+
+@Test func demoPetrolCarHasFuelStats() throws {
+    let demo = DemoCar(kind: .fuel, brand: .opel)
+    #expect(demo.vehicle.brand == "Opel")
+    #expect(demo.vehicle.kind(override: nil) == "Petrol / diesel")
+    let st = demo.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
+    #expect(st.energyType == "Fuel" && st.batteryPct == 58 && !st.plugged)
+    #expect(!Caps.climate(st) && !Caps.battery(st))
+    #expect(demo.sessions().isEmpty)
+    let scale = try #require(FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm))
+    #expect(scale == 0.01)
+    let avg = try #require(Stats.lifetimeLPer100(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm, litersPerUnit: scale))
+    #expect(abs(avg - 5.9) < 0.001)
+    let trips = demo.tripsJSON().map { Trip.parse($0, litersPerUnit: scale) }
+    #expect(trips.allSatisfy { $0.liters != nil && $0.kwh == nil })
+    #expect(Stats.monthly(trips).count >= 4)                 // four months of drives
+    #expect(Stats.fillUps(trips, tankLiters: 47).count >= 2)
+    let tank = try #require(Stats.tankEstimate(trips))
+    #expect(abs(tank - 47) < 2)
+}
+
+@Test func demoPlugInHybridUsesBothEnergies() throws {
+    let demo = DemoCar(kind: .hybrid, brand: .citroen)
+    let st = demo.vehicle.parseStatus(demo.statusJSON(), maintenance: nil, override: nil)
+    #expect(st.energyType == "Hybrid")
+    #expect(st.capacityKwh == nil || st.capacityKwh! < 30)  // 12.4 kWh is below the 30 kWh plausibility floor for capacity
+    #expect(st.fuelPct == 58 && st.isCharging)
+    #expect(Caps.battery(st) && Caps.climate(st))
+    let trips = demo.tripsJSON().map { Trip.parse($0, litersPerUnit: 0.01) }
+    #expect(trips.contains { $0.liters != nil && $0.kwh != nil })    // long trips: battery first, then fuel
+    #expect(trips.contains { $0.liters == nil && $0.kwh != nil })    // short trips on the battery only
+    #expect(trips.allSatisfy { $0.startLevel != nil })               // the gauge is the tank
+    #expect(demo.sessions().allSatisfy { !$0.isFast })
 }

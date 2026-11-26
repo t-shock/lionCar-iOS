@@ -8,6 +8,7 @@ struct SignInView: View {
     @State private var brand: Brand = .peugeot
     @State private var country = "GB"
     @State private var showNotice = false
+    @State private var choosingDemo = false
 
     var body: some View {
         NavigationStack {
@@ -45,7 +46,7 @@ struct SignInView: View {
                     Text("You sign in on \(brand.display)'s own page with the same e-mail and password as the \(brand.app) app. LionCar never sees your password.")
                 }
                 Section {
-                    Button("Try with a sample car (no account)") { model.enterDemo() }
+                    Button("Try with a sample car (no account)") { choosingDemo = true }
                 }
                 Section {
                     DisclosureGroup("What needs a subscription?", isExpanded: $showNotice) {
@@ -54,6 +55,7 @@ struct SignInView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $choosingDemo) { DemoSetupView() }
         }
         .onAppear {
             brand = model.brand

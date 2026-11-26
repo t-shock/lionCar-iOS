@@ -33,6 +33,9 @@ struct ChargingCard: View {
                     .font(.subheadline)
                 Text(String(localized: "\(Fmt.duration(Double(left.minutes) * 60)) left")).font(.caption).foregroundStyle(.secondary)
             }
+            if let h = st.nextDelayedHour {
+                ScheduledStartRow(st: st, hour: h, minute: st.nextDelayedMinute ?? 0)
+            }
             if model.remoteReady {
                 HStack(spacing: 10) {
                     if st.isCharging {
@@ -79,6 +82,35 @@ struct ChargingCard: View {
         Button { Task { await run() } } label: { Label(title, systemImage: icon).frame(maxWidth: .infinity).padding(.vertical, 6) }
             .buttonStyle(.borderedProminent)
             .disabled(model.commandLabel != nil)
+    }
+}
+
+/// The car waits for this time before it charges. "Stop charging" works by setting it, so it can stay on afterwards;
+/// Turn off lets the car charge as soon as it is plugged in (ported from LionFlow).
+struct ScheduledStartRow: View {
+    @Environment(AppModel.self) private var model
+    let st: VehicleStatus
+    let hour: Int
+    let minute: Int
+    @State private var confirming = false
+
+    var body: some View {
+        HStack {
+            Label("Scheduled start", systemImage: "clock.badge")
+            Spacer()
+            Text(String(format: "%02d:%02d", hour, minute)).bold()
+            // Not while LionCar's charging times use the scheduled start.
+            if model.remoteReady && !model.chargeSettings.windowOn {
+                Button("Turn off") { confirming = true }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .disabled(model.commandLabel != nil)
+            }
+        }
+        .font(.subheadline)
+        .confirmationDialog(st.plugged ? "Turn off scheduled start? Charging starts now." : "Turn off scheduled start?",
+                            isPresented: $confirming, titleVisibility: .visible) {
+            Button("Turn off") { Task { await model.clearScheduledStart() } }
+        }
     }
 }
 
@@ -435,11 +467,70 @@ private struct PriceField: View {
 
 // MARK: Demo
 
+/// Which sample car to show: electric, plug-in hybrid or petrol / diesel, of any brand (ported from LionFlow).
+struct DemoSetupView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var kind: DemoCar.Kind = .electric
+    @State private var brand: Brand = .peugeot
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Sample car and made-up data. Nothing is sent to a real car.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Kind of car") {
+                    ForEach(DemoCar.Kind.allCases) { k in
+                        Button { kind = k } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(title(k)).foregroundStyle(.primary)
+                                    Text(note(k)).font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if kind == k { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
+                            }
+                        }
+                    }
+                }
+                Section("Brand") {
+                    Picker("Brand", selection: $brand) {
+                        ForEach(Brand.allCases) { Text(verbatim: $0.display).tag($0) }
+                    }
+                }
+                Section {
+                    Button {
+                        model.enterDemo(kind: kind, brand: brand)
+                        dismiss()
+                    } label: { HStack { Spacer(); Text("Start the demo").bold(); Spacer() } }
+                }
+            }
+            .navigationTitle("Try a sample car")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+        }
+        .onAppear { brand = model.brand }
+    }
+
+    private func title(_ k: DemoCar.Kind) -> LocalizedStringKey {
+        switch k { case .electric: "Electric"; case .hybrid: "Plug-in hybrid"; case .fuel: "Petrol / diesel" }
+    }
+
+    private func note(_ k: DemoCar.Kind) -> LocalizedStringKey {
+        switch k {
+        case .electric: "Battery, charging and pre-heating"
+        case .hybrid: "Battery for short trips, fuel for long ones"
+        case .fuel: "Fuel level, fuel cost and statistics"
+        }
+    }
+}
+
 struct DemoBanner: View {
     @Environment(AppModel.self) private var model
     var body: some View {
         HStack {
-            Label("Demo mode — a sample electric car. Nothing is sent to a real car.", systemImage: "play.rectangle")
+            Label("Demo mode — a sample car. Nothing is sent to a real car.", systemImage: "play.rectangle")
                 .font(.footnote.bold())
             Spacer()
             Button("Exit") { model.exitDemo() }.font(.footnote.bold())

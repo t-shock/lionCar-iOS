@@ -13,7 +13,7 @@ struct HomeView: View {
                     if model.isDemo { DemoBanner() }
                     header
                     if let label = model.commandLabel { progressStrip(label) }
-                    if let st = model.status { notices(st) }
+                    if let st = model.status { notices(st); QuietCarNote(st: st) }
                     if !model.alerts.isEmpty { alertsCard }
                     if let st = model.status {
                         ForEach(model.visibleCards) { c in
@@ -338,5 +338,43 @@ struct CustomizeHomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+    }
+}
+
+/// The car itself hasn't sent anything new for hours. Nothing an app can force: say so plainly, with what usually
+/// helps, so it doesn't look like LionCar is stuck (ported from LionFlow).
+struct QuietCarNote: View {
+    @Environment(AppModel.self) private var model
+    let st: VehicleStatus
+    @State private var settled = false
+    @State private var hiddenFor: Date?
+
+    var body: some View {
+        Group {
+            if let at = st.updatedAt, show(at) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top) {
+                        Label("The car hasn't sent new data", systemImage: "antenna.radiowaves.left.and.right.slash").font(.headline)
+                        Spacer()
+                        Button("OK") { hiddenFor = at }.font(.subheadline.bold())
+                    }
+                    Text("Last report \(Fmt.ago(at)). LionCar shows what the car last sent to the carmaker's server. If the official app has no new data either, the car's connection is asleep or the carmaker's service has a problem, and no app can fix that from the phone.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("A short drive, or locking and unlocking with the key, usually wakes it up. If it lasts for days, ask your dealer to check the car's connected services.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        // Give a refresh or "Update now" a moment before saying anything.
+        .task { try? await Task.sleep(nanoseconds: 20_000_000_000); settled = true }
+    }
+
+    private func show(_ at: Date) -> Bool {
+        guard settled, !model.isDemo, !model.statusMissing, !st.moving, !model.refreshing, model.commandLabel == nil,
+              hiddenFor != at else { return false }
+        // With remote control the car can be woken, so 6 h means it didn't answer; without it, a parked car can be quiet overnight.
+        return Date().timeIntervalSince(at) >= (model.remoteReady ? 6 : 24) * 3600
     }
 }

@@ -40,6 +40,7 @@
 "48 V battery health" = "Υγεία μπαταρίας 48 V";
 "48 V mild hybrid" = "Ήπιο υβριδικό 48 V";
 "7 days" = "7 ημέρες";
+"A short drive, or locking and unlocking with the key, usually wakes it up. If it lasts for days, ask your dealer to check the car's connected services." = "Μια σύντομη διαδρομή ή κλείδωμα και ξεκλείδωμα με το κλειδί συνήθως το ξυπνά. Αν διαρκεί μέρες, ζητήστε από την αντιπροσωπεία να ελέγξει τις συνδεδεμένες υπηρεσίες του αυτοκινήτου.";
 "A tag with a place is given to every trip that starts or ends within its radius. You can always change a trip's tag by hand." = "Μια ετικέτα με τοποθεσία δίνεται σε κάθε διαδρομή που ξεκινά ή τελειώνει μέσα στην ακτίνα της. Μπορείτε πάντα να αλλάξετε την ετικέτα μιας διαδρομής χειροκίνητα.";
 "About" = "Σχετικά";
 "About %lld %% at %@" = "Περίπου %lld %% στις %@";
@@ -60,10 +61,12 @@
 "Away" = "Εκτός σπιτιού";
 "Battery" = "Μπαταρία";
 "Battery capacity" = "Χωρητικότητα μπαταρίας";
+"Battery for short trips, fuel for long ones" = "Μπαταρία για μικρές διαδρομές, καύσιμο για μεγάλες";
 "Battery health" = "Υγεία μπαταρίας";
 "Battery health (estimate)" = "Υγεία μπαταρίας (εκτίμηση)";
 "Battery is low" = "Η μπαταρία είναι χαμηλή";
 "Battery voltage (as reported)" = "Τάση μπαταρίας (όπως αναφέρεται)";
+"Battery, charging and pre-heating" = "Μπαταρία, φόρτιση και προθέρμανση";
 "Brand" = "Μάρκα";
 "By tag" = "Ανά ετικέτα";
 "Cancel" = "Ακύρωση";
@@ -110,7 +113,7 @@
 "Daily limit" = "Ημερήσιο όριο";
 "Days to service" = "Ημέρες έως το σέρβις";
 "Demo" = "Επίδειξη";
-"Demo mode — a sample electric car. Nothing is sent to a real car." = "Λειτουργία επίδειξης — ένα δείγμα ηλεκτρικού αυτοκινήτου. Τίποτα δεν στέλνεται σε πραγματικό αυτοκίνητο.";
+"Demo mode — a sample car. Nothing is sent to a real car." = "Λειτουργία επίδειξης — ένα δείγμα αυτοκινήτου. Τίποτα δεν στέλνεται σε πραγματικό αυτοκίνητο.";
 "Demo mode: commands are simulated. Your real remote-control setup is not touched." = "Λειτουργία επίδειξης: οι εντολές προσομοιώνονται. Η πραγματική ρύθμιση τηλεχειρισμού δεν αλλάζει.";
 "Detect automatically" = "Αυτόματος εντοπισμός";
 "Directions to the car" = "Οδηγίες προς το αυτοκίνητο";
@@ -151,6 +154,7 @@
 "Fuel cost" = "Κόστος καυσίμου";
 "Fuel is low" = "Το καύσιμο είναι χαμηλό";
 "Fuel level" = "Στάθμη καυσίμου";
+"Fuel level, fuel cost and statistics" = "Στάθμη καυσίμου, κόστος καυσίμου και στατιστικά";
 "Fuel price" = "Τιμή καυσίμου";
 "Fuel range" = "Αυτονομία καυσίμου";
 "Fuel since new" = "Καύσιμο από καινούργιο";
@@ -167,9 +171,11 @@
 "Ignition" = "Ανάφλεξη";
 "Indicators on" = "Αναμμένα φλας";
 "It was parked unlocked. Open LionCar to lock it." = "Σταθμεύτηκε ξεκλείδωτο. Ανοίξτε το LionCar για να το κλειδώσετε.";
+"Kind of car" = "Είδος αυτοκινήτου";
 "Known charger" = "Γνωστός φορτιστής";
 "Known chargers (up to 5)" = "Γνωστοί φορτιστές (έως 5)";
 "Last 30 days" = "Τελευταίες 30 ημέρες";
+"Last report %@. LionCar shows what the car last sent to the carmaker's server. If the official app has no new data either, the car's connection is asleep or the carmaker's service has a problem, and no app can fix that from the phone." = "Τελευταία αναφορά %@. Το LionCar δείχνει ό,τι έστειλε τελευταίο το αυτοκίνητο στον διακομιστή του κατασκευαστή. Αν ούτε η επίσημη εφαρμογή έχει νέα δεδομένα, η σύνδεση του αυτοκινήτου είναι σε αδράνεια ή η υπηρεσία του κατασκευαστή έχει πρόβλημα, και καμία εφαρμογή δεν μπορεί να το διορθώσει από το τηλέφωνο.";
 "Latitude, longitude" = "Γεωγρ. πλάτος, μήκος";
 "Lights" = "Φώτα";
 "Limit %lld %%" = "Όριο %lld %%";
@@ -265,7 +271,9 @@
 "Reset to default" = "Επαναφορά προεπιλογής";
 "SMS code" = "Κωδικός SMS";
 "SMS sent — check your messages" = "Το SMS στάλθηκε — ελέγξτε τα μηνύματά σας";
+"Sample car and made-up data. Nothing is sent to a real car." = "Δείγμα αυτοκινήτου με φανταστικά δεδομένα. Τίποτα δεν στέλνεται σε πραγματικό αυτοκίνητο.";
 "Saving schedule" = "Αποθήκευση προγράμματος";
+"Scheduled start" = "Προγραμματισμένη έναρξη";
 "Schedules" = "Προγράμματα";
 "Seatbelts" = "Ζώνες ασφαλείας";
 "Send the start time to the car" = "Αποστολή ώρας έναρξης στο αυτοκίνητο";
@@ -282,7 +290,7 @@
 "Set your fuel price in Settings › Fuel and costs to see what your driving costs." = "Ορίστε την τιμή καυσίμου στις Ρυθμίσεις › Καύσιμο και κόστος για να δείτε πόσο κοστίζει η οδήγησή σας.";
 "Settings" = "Ρυθμίσεις";
 "Show" = "Εμφάνιση";
-"Shows a made-up electric car, to see the charging and pre-heating screens. Nothing is sent to a car; your account and remote-control setup stay as they are." = "Εμφανίζει ένα φανταστικό ηλεκτρικό αυτοκίνητο για να δείτε τις οθόνες φόρτισης και προθέρμανσης. Τίποτα δεν στέλνεται σε αυτοκίνητο· ο λογαριασμός σας και η ρύθμιση τηλεχειρισμού μένουν ως έχουν.";
+"Shows a made-up electric car, plug-in hybrid or petrol / diesel car, to see every screen. Nothing is sent to a car; your account and remote-control setup stay as they are." = "Εμφανίζει ένα φανταστικό ηλεκτρικό, plug-in υβριδικό ή βενζινοκίνητο / πετρελαιοκίνητο αυτοκίνητο για να δείτε κάθε οθόνη. Τίποτα δεν στέλνεται σε αυτοκίνητο· ο λογαριασμός σας και η ρύθμιση τηλεχειρισμού μένουν ως έχουν.";
 "Sign in with %@" = "Σύνδεση με %@";
 "Sign out" = "Αποσύνδεση";
 "Sign out of %@?" = "Αποσύνδεση από το %@;";
@@ -292,6 +300,7 @@
 "Slot %lld" = "Θέση %lld";
 "Speed" = "Ταχύτητα";
 "Start" = "Αφετηρία";
+"Start the demo" = "Έναρξη επίδειξης";
 "Stats" = "Στατιστικά";
 "Status" = "Κατάσταση";
 "Stop at %lld %%" = "Διακοπή στο %lld %%";
@@ -305,6 +314,7 @@
 "Tank size" = "Χωρητικότητα ρεζερβουάρ";
 "The car didn't send a new report yet. It may be out of mobile coverage (for example in a garage); try again later." = "Το αυτοκίνητο δεν έστειλε ακόμη νέα αναφορά. Ίσως είναι εκτός κάλυψης δικτύου (π.χ. σε υπόγειο γκαράζ)· δοκιμάστε ξανά αργότερα.";
 "The car has 4 schedule slots. Set when the car should be ready; it starts heating or cooling shortly before." = "Το αυτοκίνητο έχει 4 θέσεις προγράμματος. Ορίστε πότε πρέπει να είναι έτοιμο· ξεκινά τη θέρμανση ή ψύξη λίγο νωρίτερα.";
+"The car hasn't sent new data" = "Το αυτοκίνητο δεν έχει στείλει νέα δεδομένα";
 "The car lost its connection during this trip, so some figures may be missing." = "Το αυτοκίνητο έχασε τη σύνδεσή του σε αυτή τη διαδρομή, οπότε μπορεί να λείπουν κάποια στοιχεία.";
 "The price is used for trip and monthly costs. Leave the tank size empty to let LionCar estimate it from the fuel gauge." = "Η τιμή χρησιμοποιείται για το κόστος διαδρομών και μηνών. Αφήστε κενή τη χωρητικότητα για να την υπολογίσει το LionCar από τον δείκτη καυσίμου.";
 "The security code stays on this iPhone, in the Keychain. %@ is needed for lock, unlock, lights and horn." = "Ο κωδικός ασφαλείας μένει σε αυτό το iPhone, στο Keychain. Για κλείδωμα, ξεκλείδωμα, φώτα και κόρνα χρειάζεται: %@.";
@@ -313,11 +323,15 @@
 "Top speed" = "Μέγιστη ταχύτητα";
 "Trip tags" = "Ετικέτες διαδρομών";
 "Trips" = "Διαδρομές";
+"Try a sample car" = "Δοκιμή με δείγμα αυτοκινήτου";
+"Try with a sample car" = "Δοκιμή με δείγμα αυτοκινήτου";
 "Try with a sample car (no account)" = "Δοκιμή με δείγμα αυτοκινήτου (χωρίς λογαριασμό)";
-"Try with a sample electric car" = "Δοκιμή με δείγμα ηλεκτρικού αυτοκινήτου";
 "Turn off" = "Απενεργοποίηση";
 "Turn off remote control" = "Απενεργοποίηση τηλεχειρισμού";
 "Turn off remote control on this iPhone?" = "Απενεργοποίηση τηλεχειρισμού σε αυτό το iPhone;";
+"Turn off scheduled start" = "Απενεργοποίηση προγραμματισμένης έναρξης";
+"Turn off scheduled start?" = "Απενεργοποίηση της προγραμματισμένης έναρξης;";
+"Turn off scheduled start? Charging starts now." = "Απενεργοποίηση της προγραμματισμένης έναρξης; Η φόρτιση ξεκινά τώρα.";
 "Type" = "Τύπος";
 "Unknown place" = "Άγνωστο σημείο";
 "Unlock" = "Ξεκλείδωμα";

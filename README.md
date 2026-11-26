@@ -21,7 +21,7 @@ and checked only with automated tests and made-up car data.
 | Stats, fill-ups, fuel cost, tags, CSV, all car data | ⚠️ not confirmed yet | built from the same data as the trips; tested with made-up data |
 | Lock, unlock, lights, horn, **Update now** | ⚠️ not confirmed yet | the commands go out like LionFlow's; first real-car reports pending |
 | Notifications | ⚠️ not confirmed yet | timing depends on iOS |
-| **Everything for electric and plug-in hybrid cars** | ❌ **not tested** | no such car was available — see below |
+| **Everything for electric and plug-in hybrid cars** (incl. scheduled start) | ❌ **not tested** | no such car was available — see below |
 
 Reports of what works (or doesn't) on your car are very welcome — please open an issue.
 
@@ -42,6 +42,8 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
 - **Locked / unlocked**, which doors, boot or windows are open, alarm on or off
 - When the car last reported, with **Update now**: wakes the car so it sends a fresh report (the server otherwise only has
   the last report, which can be hours old when the car is parked)
+- A note when the car itself **hasn't sent new data for hours**, with what usually helps (a short drive, or locking and
+  unlocking with the key) — so it doesn't look like the app is stuck
 - Where the car is parked, which way it faces, and walking directions in Apple Maps
 - Odometer, outside temperature, next service (km and days), engine warm or cold, drive mode and gearbox
 - **Average consumption since new**, from the car's own fuel counter
@@ -82,6 +84,8 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
 - **Charging card:** charging state, **real charging power in kW** (worked out from the energy going into the battery;
   estimated until two reports are in), time left and the time it reaches your limit or 100 %
 - **Start / stop charging**, and the car's own limit: **daily limit or full charge for a trip**
+- The car's **scheduled start** time, with **Turn off**: "Stop charging" works by setting a scheduled start, which used
+  to stay on, so the car then waited for it the next time it was plugged in
 - **"Charged to X %" notification** at the time the car should reach your target — iOS delivers it on time even when
   LionCar isn't running, so it is the dependable way on iPhone to stop at a %
 - **LionCar's own charge limit** and **charging times** ("only charge between 22:00 and 06:00"). Off by default. ⚠️ They
@@ -97,9 +101,11 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
   the same energy in the battery
 
 ### Demo mode
-**Settings › Try with a sample electric car** (or on the sign-in screen, without an account) shows a made-up electric
-car with charging, pre-heating, trips and a charging log. Nothing is sent to any car, and your real account and
-remote-control setup are left alone. Leave it with **Exit**.
+**Settings › Try with a sample car** (or on the sign-in screen, without an account) shows a made-up car: choose an
+**electric car**, a **plug-in hybrid** or a **petrol / diesel car**, of any brand. The electric car shows charging,
+pre-heating and a charging log; the hybrid and petrol / diesel cars come with four months of trips, so fuel cost,
+fill-ups and records have something to show. Nothing is sent to any car, and your real account and remote-control
+setup are left alone. Leave it with **Exit**.
 
 ### Notifications
 Car left unlocked, low fuel or battery (you choose the %), service due soon, fog lights left on — and for electric cars
@@ -115,7 +121,8 @@ a warning can come late.
   the charging and pre-heating features above (untested on a real car)
 
 ### Languages
-English and Greek (follows the iPhone, or choose under iPhone Settings › LionCar › Language).
+English, Greek and Dutch (follows the iPhone, or choose under iPhone Settings › LionCar › Language). Much of the Dutch
+comes from LionFlow's own translation.
 
 ## LionCar compared with LionFlow (Android)
 
@@ -138,7 +145,10 @@ English and Greek (follows the iPhone, or choose under iPhone Settings › LionC
 | Charge past the car's limit, smart (weather) schedule | ✅ | — (needs checks every few minutes) |
 | Charging log with real kW, home/away, costs, battery health | ✅ | ✅ ⚠️ untested; misses charges while the app isn't running |
 | Range estimate when the server reports 0 km | ✅ | ✅ ⚠️ untested on a real car |
-| Demo mode with a sample electric car | ✅ | ✅ (also while signed in) |
+| Turn off the car's scheduled start | ✅ | ✅ ⚠️ untested on a real car |
+| Demo mode: electric, plug-in hybrid or petrol / diesel, any brand | ✅ | ✅ (also while signed in) |
+| Note when the car hasn't sent data for hours | ✅ | ✅ |
+| Wake-ups back off when the car doesn't answer | ✅ (for its automatic wake-ups) | — not needed: LionCar only wakes the car when you tap "Update now" |
 | 48 V mild hybrid support | ✅ | ✅ plus 48 V battery and per-car fuel calibration |
 | Trips | ✅ | ✅ 7 days to 1 year |
 | Trip tags | ✅ | ✅ |
@@ -152,10 +162,10 @@ English and Greek (follows the iPhone, or choose under iPhone Settings › LionC
 | Weather and forecast | ✅ | not yet |
 | Notifications | ✅ | ✅ (timing decided by iOS) |
 | Home-screen widget | ✅ | not yet |
-| Watch app | ✅ Wear OS | not yet (Apple Watch) |
-| In-car app | ✅ Android Auto | — (CarPlay needs an Apple entitlement this project can't get) |
+| Watch app | ✅ Wear OS, you choose what it shows | not yet (Apple Watch) |
+| In-car app | ✅ Android Auto, with the car's speed and your choice of what it shows | — (CarPlay needs an Apple entitlement this project can't get) |
 | App lock with fingerprint/code | ✅ | Face ID before unlock and horn |
-| Languages | English, French, German, Spanish, Norwegian | English, Greek |
+| Languages | English, French, German, Spanish, Norwegian, Dutch | English, Greek, Dutch |
 | Updates | updates itself | reinstall from source (see below) |
 
 ## Install
