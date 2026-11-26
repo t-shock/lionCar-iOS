@@ -293,7 +293,11 @@ That's all. A calendar reminder every 6 days helps.
 - `Sources/LionCar/` — the SwiftUI app.
 - `translations/<language>.json` — translations. `scripts/extract_strings.py Sources/LionCar` lists the app's texts;
   `scripts/make_strings.py` builds the iOS files from the JSON.
-- `design/make_icon.py` — draws the app icon.
+- `design/make_icon.py` — draws the app icon (`d solid`), its dark version (`d solid-dark`) and, in grayscale, the
+  tinted one. They go in `Resources/Icon/Assets.xcassets`.
+- **Dark and tinted icons need a Mac once:** iOS only reads them from a compiled asset catalog, and Apple's compiler
+  (`actool`) only runs on macOS with Xcode. After changing the icon, run `sh scripts/build_icon_assets.sh` on a Mac and
+  commit the resulting `Resources/Assets.car`; Linux builds just include it.
 
 ## Licence
 

@@ -17,6 +17,10 @@ if PALETTE == "night":      # black background, teal mane, black details
 elif PALETTE == "solid":    # all teal: no mane, the car alone on teal (the app icon)
     TEAL_TOP, TEAL_BOT = (0, 190, 203), (0, 120, 132)
     GOLD, INK = None, (14, 15, 17)
+elif PALETTE == "solid-dark":   # the same car on a dark background: the icon when the iPhone uses dark icons
+    TEAL_TOP, TEAL_BOT = (40, 42, 46), (10, 11, 13)
+    GOLD, INK = None, (14, 15, 17)
+    WHEEL = (82, 85, 92)        # black wheels would vanish into the dark background
 elif PALETTE == "teal":     # teal background, black mane and details
     TEAL_TOP, TEAL_BOT = (0, 186, 199), (0, 128, 140)
     GOLD, INK = (16, 17, 20), (16, 17, 20)
@@ -67,8 +71,9 @@ def rounded_trapezoid(top_y, bot_y, top_hw, bot_hw, rad, fill):
     poly(pts, fill)
 
 # Car face (white): cabin, body, wheels
-rrect(cx - 236, 664, cx - 150, 742, 26, INK)            # wheels peek out under the body
-rrect(cx + 150, 664, cx + 236, 742, 26, INK)
+WHEEL = globals().get("WHEEL", INK)
+rrect(cx - 236, 664, cx - 150, 742, 26, WHEEL)          # wheels peek out under the body
+rrect(cx + 150, 664, cx + 236, 742, 26, WHEEL)
 cabin(322, 170, 40, 286, 600, WHITE)                     # roof
 rrect(cx - 286, 470, cx + 286, 700, 64, WHITE)          # body
 rounded_trapezoid(356, 470, 128, 214, 22, INK)          # windshield
