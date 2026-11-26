@@ -14,6 +14,9 @@ GOLD, WHITE, INK = (245, 186, 66), (255, 255, 255), (8, 92, 88)
 if PALETTE == "night":      # black background, teal mane, black details
     TEAL_TOP, TEAL_BOT = (34, 36, 40), (8, 9, 11)
     GOLD, INK = (0, 178, 190), (14, 15, 17)
+elif PALETTE == "solid":    # all teal: no mane, the car alone on teal (the app icon)
+    TEAL_TOP, TEAL_BOT = (0, 190, 203), (0, 120, 132)
+    GOLD, INK = None, (14, 15, 17)
 elif PALETTE == "teal":     # teal background, black mane and details
     TEAL_TOP, TEAL_BOT = (0, 186, 199), (0, 128, 140)
     GOLD, INK = (16, 17, 20), (16, 17, 20)
@@ -30,8 +33,9 @@ cx, cy = 512, 530
 
 # Mane: a disc with a ring of round scallops
 n, ring, r = (14, 318, 104) if VARIANT == "a" else (12, 300, 120)
-d.ellipse([p(cx - ring), p(cy - ring), p(cx + ring), p(cy + ring)], fill=GOLD)
-for i in range(n):
+if GOLD is not None:
+    d.ellipse([p(cx - ring), p(cy - ring), p(cx + ring), p(cy + ring)], fill=GOLD)
+for i in range(n if GOLD is not None else 0):
     a = 2 * math.pi * i / n - math.pi / 2
     x, y = cx + ring * math.cos(a), cy + ring * math.sin(a)
     d.ellipse([p(x - r), p(y - r), p(x + r), p(y + r)], fill=GOLD)
