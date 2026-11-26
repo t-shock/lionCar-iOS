@@ -61,20 +61,7 @@ public enum OsmPlaces {
         j.objects("elements").compactMap { e in
             guard let la = e.num("lat") ?? e.obj("center")?.num("lat"), let lo = e.num("lon") ?? e.obj("center")?.num("lon") else { return nil }
             let t = e.obj("tags") ?? [:]
-            var maxKw = 0.0
-            var sockets: [String: Int] = [:]
-            for (k, v) in t {
-                let value = "\(v)".lowercased()
-                if k.hasSuffix(":output") || k == "maxpower" {
-                    if let kw = power(value), kw > maxKw { maxKw = kw }
-                }
-                // socket:type2_combo = 4 (a count), but not socket:type2_combo:output etc.
-                if k.hasPrefix("socket:"), k.split(separator: ":").count == 2 {
-                    let name = socketName(String(k.dropFirst(7)))
-                    let n = Int(value) ?? (value == "yes" ? 1 : 0)
-                    if n > 0 { sockets[name, default: 0] += n }
-                }
-            }
+            let (maxKw, sockets) = powerAndSockets(t)
             let name = ["name", "operator", "brand", "network"].lazy.compactMap { t.str($0) }.first { !$0.isEmpty }
                 ?? (kind == .fuel ? "Fuel station" : "Charging station")
             let address = [[t.str("addr:street"), t.str("addr:housenumber")].compactMap { $0 }.joined(separator: " "), t.optString("addr:city")]
@@ -87,6 +74,25 @@ public enum OsmPlaces {
             c.fee = t.optString("fee")
             return c
         }
+    }
+
+    /// The highest power mapped on a station (kW, 0 when none) and how many sockets of each plug type it has.
+    private static func powerAndSockets(_ tags: JSON) -> (maxKw: Double, sockets: [String: Int]) {
+        var maxKw = 0.0
+        var sockets: [String: Int] = [:]
+        for (k, v) in tags {
+            let value = "\(v)".lowercased()
+            if k.hasSuffix(":output") || k == "maxpower" {
+                if let kw = power(value), kw > maxKw { maxKw = kw }
+            }
+            // socket:type2_combo = 4 (a count), but not socket:type2_combo:output etc.
+            if k.hasPrefix("socket:"), k.split(separator: ":").count == 2 {
+                let name = socketName(String(k.dropFirst("socket:".count)))
+                let n = Int(value) ?? (value == "yes" ? 1 : 0)
+                if n > 0 { sockets[name, default: 0] += n }
+            }
+        }
+        return (maxKw, sockets)
     }
 
     /// "22 kW", "150kW", "0.35 MW", "50000" (plain watts), "11" → kW.
@@ -134,26 +140,17 @@ public enum OsmPlaces {
     /// others a little later, take the first good answer, give up after 40 s. Unlike LionFlow, a server whose status page
     /// doesn't answer is still asked (last): some answer searches but not their status page.
     public static func raw(_ q: String) async throws -> JSON {
-        let waits = await withTaskGroup(of: (String, Int?).self) { g in
-            for u in endpoints { g.addTask { (u, await probe(u)) } }
-            var out: [(String, Int?)] = []
-            for await x in g { out.append(x) }
-            return out
-        }
+        let waits = await probeAll()
+        // A server whose status page didn't answer is still asked, as if it had said "wait 1 s".
         let usable = waits.map { ($0.0, $0.1 ?? 1) }.sorted { $0.1 < $1.1 }
         let allSilent = waits.allSatisfy { $0.1 == nil }
         let body = "data=" + (q.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? q)
         return try await withThrowingTaskGroup(of: JSON?.self) { g in
             for (i, (url, wait)) in usable.enumerated() {
                 g.addTask {
+                    // Each server waits as long as it asked, plus 1.5 s per place in the queue.
                     try await Task.sleep(nanoseconds: UInt64(wait) * 1_000_000_000 + UInt64(i) * 1_500_000_000)
-                    var r = URLRequest(url: URL(string: url)!)
-                    r.httpMethod = "POST"
-                    r.timeoutInterval = 35
-                    r.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-                    r.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-                    r.httpBody = Data(body.utf8)
-                    guard let j = try? await HTTP.json(r) as? JSON else { return nil as JSON? }
+                    guard let j = try? await HTTP.json(searchRequest(url, body: body)) as? JSON else { return nil as JSON? }
                     // A server that ran out of time answers "OK" with a remark and no data.
                     if !(j.str("remark") ?? "").isEmpty && j.objects("elements").isEmpty { return nil }
                     return j
@@ -168,5 +165,25 @@ public enum OsmPlaces {
             }
             throw BusyError()
         }
+    }
+
+    /// Every server's answer to [probe], at the same time.
+    private static func probeAll() async -> [(String, Int?)] {
+        await withTaskGroup(of: (String, Int?).self) { g in
+            for u in endpoints { g.addTask { (u, await probe(u)) } }
+            var out: [(String, Int?)] = []
+            for await x in g { out.append(x) }
+            return out
+        }
+    }
+
+    private static func searchRequest(_ url: String, body: String) -> URLRequest {
+        var r = URLRequest(url: URL(string: url)!)
+        r.httpMethod = "POST"
+        r.timeoutInterval = 35
+        r.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        r.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        r.httpBody = Data(body.utf8)
+        return r
     }
 }

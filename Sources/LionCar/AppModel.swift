@@ -2,42 +2,80 @@ import Foundation
 import CoreLocation
 import UIKit
 import Observation
-import LocalAuthentication
 import LionCore
 
-/// The app's state and actions (LionFlow's AppViewModel, trimmed to what this version does).
+/// The app's state and actions (LionFlow's AppViewModel). This file holds the state, sign-in, loading the car's
+/// data, the Car tab layout and the cache. The rest is in extensions: remote commands (AppModel+Remote), electric cars
+/// and demo mode (AppModel+EV), costs, tags and warnings (AppModel+Extras), and the map (AppModel+Map).
+/// @Observable needs every stored property in the class itself, so they are all here.
 @Observable @MainActor
 final class AppModel {
     enum Phase { case signedOut, loading, ready }
+
+    // MARK: Account
 
     private let store = KeychainStore()
     let defaults = UserDefaults.standard
     var api: StellantisAPI
     private(set) var remote: RemoteControl
-
     var phase: Phase = .signedOut
     var brand: Brand
     var country: String
-    var vehicles: [Vehicle] = []
-    var vehicle: Vehicle?
-    var status: VehicleStatus?
-    var statusMissing = false
-    var alerts: [JSON] = []
-    var trips: [Trip] = []
-    var tripsLoading = false
-    var refreshing = false
     var signingIn = false
-    var lastRefresh: Date?
+    /// An error or notice, shown as an alert.
     var message: String?
     /// A short note that disappears by itself (e.g. "Lock — done").
     var toast: String?
+
+    // MARK: The shown car
+
+    var vehicles: [Vehicle] = []
+    var vehicle: Vehicle?
+    var status: VehicleStatus?
+    /// The status exactly as the server sent it (without the lock state held after a command).
+    var serverStatus: VehicleStatus?
+    var statusMissing = false
+    var alerts: [JSON] = []
+    var refreshing = false
+    var lastRefresh: Date?
+    /// The answers as received. `status` and `trips` are parsed from them, again whenever a setting changes the result.
+    var rawStatus: JSON?
+    var rawMaintenance: JSON?
+    var rawTrips: [JSON] = []
+
+    // MARK: Trips
+
+    var trips: [Trip] = []
+    var tripsLoading = false
+    /// The period shown on the Trips tab, in days.
+    var tripDays: Int = UserDefaults.standard.object(forKey: "tripDays") as? Int ?? 30 {
+        didSet {
+            defaults.set(tripDays, forKey: "tripDays")
+            if tripDays > loadedTripDays { Task { await loadTrips(days: tripDays) } }
+        }
+    }
+    /// How far back the trips in memory reach (days).
+    var loadedTripDays = 0
+    /// The longest period asked for while a load was already running; loaded as soon as it finishes.
+    private var pendingTripDays = 0
+
+    // MARK: Remote commands (see AppModel+Remote.swift)
+
     /// The command on its way ("Lock") and what's happening with it ("Waking the car…").
     var commandLabel: String?
     var commandProgress: String?
     var commandLog: [String] = []
     var smsSent = false
     var setupBusy = false
-    // Costs, tank, tags and warnings (see AppModel+Extras.swift)
+    /// True while `wakeAndRefresh()` waits for the car's new report, so it can't be started twice.
+    var updatingFromCar = false
+    /// Lock state shown after a command until the car reports again (its status lags behind).
+    var holdLock: (value: Bool, since: Date)?
+    /// Same for pre-heating.
+    var holdPrecond: (value: Bool, since: Date)?
+
+    // MARK: Costs, tags and warnings (see AppModel+Extras.swift)
+
     var fuelPrice: Double? = UserDefaults.standard.object(forKey: "fuelPrice") as? Double {
         didSet { if let fuelPrice { defaults.set(fuelPrice, forKey: "fuelPrice") } else { defaults.removeObject(forKey: "fuelPrice") } }
     }
@@ -47,13 +85,9 @@ final class AppModel {
     var alertSettings = AppModel.loadAlertSettings() { didSet { saveAlertSettings() } }
     var alertState = AppModel.loadAlertState() { didSet { saveAlertState() } }
 
-    /// Lock state shown after a command until the car reports again (its status lags behind).
-    private var holdLock: (value: Bool, since: Date)?
-    /// Same for pre-heating.
-    var holdPrecond: (value: Bool, since: Date)?
+    // MARK: Electric cars and demo mode (see AppModel+EV.swift)
 
-    // Electric cars (see AppModel+EV.swift)
-    /// Demo mode: a sample electric car; nothing is sent anywhere.
+    /// Demo mode: a sample car; nothing is sent anywhere.
     var demo: DemoCar?
     var isDemo: Bool { demo != nil }
     /// Changes whenever the shown car changes (demo on/off, another car, sign-out). Work started before a change
@@ -65,16 +99,28 @@ final class AppModel {
     var chargeSessions: [ChargeSession] = []
     var activeSession: ChargeSession?
     var chargePlaces = PlacesConfig()
+    /// Replaced with the shown car's own settings in `makeChargeData()`.
     var chargeSettings = AppModel.loadChargeSettings() { didSet { saveChargeSettings() } }
-    // Map (see AppModel+Map.swift)
+    var targetNotify: Bool = UserDefaults.standard.object(forKey: "targetNotify") as? Bool ?? true {
+        didSet { defaults.set(targetNotify, forKey: "targetNotify") }
+    }
+
+    // MARK: Map (see AppModel+Map.swift)
+
     var places: [Charger] = []
     var placesLoading = false
     var placesError: String?
     var placesCenter: CLLocationCoordinate2D?
 
-    var targetNotify: Bool = UserDefaults.standard.object(forKey: "targetNotify") as? Bool ?? true {
-        didSet { defaults.set(targetNotify, forKey: "targetNotify") }
+    // MARK: Car tab layout
+
+    /// The cards in the user's order; hidden ones are left out of `visibleCards`.
+    var homeOrder: [HomeCard] = AppModel.loadOrder() { didSet { saveLayout() } }
+    var hiddenCards: Set<HomeCard> = Set((UserDefaults.standard.stringArray(forKey: "homeHidden") ?? []).compactMap(HomeCard.init)) {
+        didSet { saveLayout() }
     }
+
+    // MARK: - Start-up
 
     init() {
         let b = Brand.of(UserDefaults.standard.string(forKey: "brand"))
@@ -83,8 +129,9 @@ final class AppModel {
         country = c
         let a = StellantisAPI(store: store, brand: b, country: c)
         api = a
-        remote = RemoteControl(api: a, store: store, makeTransport: { NWTransport() })
+        remote = Self.makeRemote(api: a, store: store)
         if api.isSignedIn {
+            // Show the last known state straight away; the network catches up in afterSignIn.
             vehicles = api.cachedVehicles()
             vehicle = api.pick(vehicles)
             makeChargeData()
@@ -94,13 +141,17 @@ final class AppModel {
         }
     }
 
-    // MARK: Sign-in
+    private static func makeRemote(api: StellantisAPI, store: KeychainStore) -> RemoteControl {
+        RemoteControl(api: api, store: store, makeTransport: { NWTransport() })
+    }
+
+    // MARK: - Sign-in
 
     func setAccount(brand: Brand, country: String) {
         self.brand = brand; self.country = country
         defaults.set(brand.rawValue, forKey: "brand"); defaults.set(country, forKey: "country")
         api = StellantisAPI(store: store, brand: brand, country: country)
-        remote = RemoteControl(api: api, store: store, makeTransport: { NWTransport() })
+        remote = Self.makeRemote(api: api, store: store)
     }
 
     var authorizeURL: URL { api.authorizeURL() }
@@ -122,6 +173,7 @@ final class AppModel {
         }
     }
 
+    /// Loads the account's cars, then the chosen car's status and trips.
     func afterSignIn(firstTime: Bool) async {
         let e = epoch
         do {
@@ -138,6 +190,7 @@ final class AppModel {
             phase = .ready
             await refresh()
             guard e == epoch else { return }
+            // A background wake-up stops here: the warnings only need the status.
             if UIApplication.shared.applicationState == .background { return }
             await loadTrips(recentOnly: true)
             if loadedTripDays < tripDays { await loadTrips() }
@@ -149,7 +202,8 @@ final class AppModel {
         }
     }
 
-    private func expired() {
+    /// The server no longer accepts the sign-in: back to the sign-in screen.
+    func expired() {
         api.signOut()
         clearCache()
         phase = .signedOut
@@ -176,7 +230,7 @@ final class AppModel {
         Task { await refresh(); await loadTrips() }
     }
 
-    // MARK: Car data
+    // MARK: - Car data
 
     var mildHybridOverride: Bool? {
         get {
@@ -199,20 +253,21 @@ final class AppModel {
         return v > 0 ? v : nil
     }
 
-    var rawStatus: JSON?
-    /// The status exactly as the server sent it (without the lock state held after a command).
-    var serverStatus: VehicleStatus?
-    var rawMaintenance: JSON?
-    var rawTrips: [JSON] = []
+    /// Learns `litersPerUnit` from the latest status, when it has the counters for it.
+    private func learnFuelScale(vin: String) {
+        if let st = status, let scale = FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm) {
+            defaults.set(scale, forKey: "fuelScale_\(vin)")
+        }
+    }
 
+    /// Fetches the latest status, then saves it, posts any warnings, moves the "charged" notification and lets
+    /// LionCar's charge limit and window act on it.
     func refresh() async {
         guard let v = vehicle else { return }
         if let demo {
             rawStatus = demo.statusJSON(); rawMaintenance = nil; statusMissing = false; lastRefresh = .now
             reparse()
-            if let st = status, let scale = FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm) {
-                defaults.set(scale, forKey: "fuelScale_\(v.vin)")
-            }
+            learnFuelScale(vin: v.vin)
             return
         }
         guard !refreshing else { return }
@@ -234,12 +289,11 @@ final class AppModel {
             alerts = newAlerts
             lastRefresh = .now
             reparse()
-            if let st = status, let scale = FuelCalibration.litersPerUnit(totalRaw: st.fuelTotalRaw, odometerKm: st.odometerKm) {
-                defaults.set(scale, forKey: "fuelScale_\(v.vin)")
-            }
+            learnFuelScale(vin: v.vin)
             saveCache()
             checkAlerts()
             scheduleTargetNotification()
+            // Its own task, as it may send commands and wait for the car.
             Task { await self.runChargeAutomation() }
         } catch is AuthExpiredError {
             expired()
@@ -247,18 +301,6 @@ final class AppModel {
             message = String(localized: "Couldn't update — \(HTTP.describe(error))")
         }
     }
-
-    /// The period shown on the Trips tab, in days.
-    var tripDays: Int = UserDefaults.standard.object(forKey: "tripDays") as? Int ?? 30 {
-        didSet {
-            defaults.set(tripDays, forKey: "tripDays")
-            if tripDays > loadedTripDays { Task { await loadTrips(days: tripDays) } }
-        }
-    }
-    /// How far back the trips in memory reach (days).
-    var loadedTripDays = 0
-    /// The longest period asked for while a load was already running; loaded as soon as it finishes.
-    private var pendingTripDays = 0
 
     /// Trips in the chosen period, newest first.
     var shownTrips: [Trip] {
@@ -290,6 +332,7 @@ final class AppModel {
         do {
             let fresh = try await api.allTrips(v, from: Date().addingTimeInterval(-Double(want) * 86_400))
             guard e == epoch, vehicle?.vin == v.vin else { return }
+            // Merge by trip id; a fresh copy replaces the old one.
             var byID: [String: JSON] = [:]
             for t in rawTrips + fresh { byID[t.optString("id")] = t }
             rawTrips = Array(byID.values)
@@ -303,22 +346,27 @@ final class AppModel {
         }
     }
 
+    /// Builds `status` (and the trips) from the raw answers, showing a value just sent until the car confirms it.
     func reparse() {
         guard let v = vehicle, let s = rawStatus else { return }
         var st = v.parseStatus(s, maintenance: rawMaintenance, override: mildHybridOverride)
         st = recordCharging(st)
         serverStatus = st
         if let h = holdPrecond {
-            if let at = st.updatedAt, at > h.since || Date().timeIntervalSince(h.since) > 300 { holdPrecond = nil }
-            else { st.preconditioningOn = h.value }
+            if Self.holdIsOver(h, reportedAt: st.updatedAt) { holdPrecond = nil } else { st.preconditioningOn = h.value }
         }
         if let h = holdLock {
-            // Keep showing what was sent until the car reports something newer than the command.
-            if let at = st.updatedAt, at > h.since || Date().timeIntervalSince(h.since) > 300 { holdLock = nil }
-            else { st.locked = h.value }
+            if Self.holdIsOver(h, reportedAt: st.updatedAt) { holdLock = nil } else { st.locked = h.value }
         }
         status = st
         reparseTrips()
+    }
+
+    /// A held value ends once the car reports something newer than the command, or after 5 minutes.
+    /// A report without a time doesn't end it.
+    private static func holdIsOver(_ hold: (value: Bool, since: Date), reportedAt: Date?) -> Bool {
+        guard let at = reportedAt else { return false }
+        return at > hold.since || Date().timeIntervalSince(hold.since) > 300
     }
 
     func reparseTrips() {
@@ -328,161 +376,16 @@ final class AppModel {
             .sorted { ($0.start ?? .distantPast) > ($1.start ?? .distantPast) }
     }
 
-    // MARK: Remote control
-
-    var remoteReady: Bool { isDemo || remote.isSetUp }
-    /// False when the brand has no remote-services link for this account: then don't offer setup at all.
-    var remotePossible: Bool { isDemo || api.customerID != nil || remote.isSetUp }
-
-    func requestSMS() async {
-        guard !isDemo else { return }
-        setupBusy = true
-        defer { setupBusy = false }
-        do {
-            try await remote.requestSMS()
-            smsSent = true
-        } catch is AuthExpiredError { expired() } catch {
-            message = String(localized: "Couldn't send the SMS — \(HTTP.describe(error))")
-        }
-    }
-
-    func activateRemote(sms: String, pin: String) async -> Bool {
-        guard !isDemo else { return false }
-        setupBusy = true
-        defer { setupBusy = false }
-        do {
-            try await remote.activate(sms: sms, pin: pin)
-            smsSent = false
-            showToast(String(localized: "Remote control is ready"))
-            return true
-        } catch is AuthExpiredError {
-            expired(); return false
-        } catch {
-            message = String(localized: "Activation failed — \(HTTP.describe(error))")
-            return false
-        }
-    }
-
     func showToast(_ text: String) {
         toast = text
         Task {
             try? await Task.sleep(nanoseconds: 3_500_000_000)
+            // Only clear it if no newer toast replaced it meanwhile.
             if self.toast == text { self.toast = nil }
         }
     }
 
-    func forgetRemote() {
-        guard !isDemo else { return }
-        let r = remote
-        Task { await r.forget() }
-    }
-
-    func loadCommandLog() async { commandLog = await remote.log }
-
-    /// Face ID / Touch ID, or the phone's passcode, before acting on the real car.
-    func confirm(_ reason: String) async -> Bool {
-        let ctx = LAContext()
-        var err: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else { return true }
-        return (try? await ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) ?? false
-    }
-
-    @discardableResult
-    func runCommand(_ label: String, confirmWith reason: String?, optimistic: ((inout VehicleStatus) -> Void)? = nil,
-                    quiet: Bool = false, demoCommand: String? = nil, demoPrograms: [Program]? = nil,
-                    _ block: @escaping (RemoteControl, Tracker) async -> CommandResult) async -> CommandResult? {
-        if let demo {
-            // Demo: nothing is sent; the sample car just changes.
-            guard commandLabel == nil else { return nil }
-            commandLabel = label
-            commandProgress = "Sending…"
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            if let demoCommand { demo.apply(demoCommand, programs: demoPrograms) }
-            commandLabel = nil; commandProgress = nil
-            await refresh()
-            if !quiet { showToast(String(localized: "\(L(label)) — done (demo)")) }
-            return .success
-        }
-        guard remote.isSetUp else { message = String(localized: "Set up remote control first (Settings › Remote control)"); return nil }
-        guard commandLabel == nil else { return nil }
-        if let reason, !(await confirm(reason)) { return nil }
-        commandLabel = label
-        commandProgress = "Sending…"
-        let tracker = Tracker(
-            onProgress: { p in Task { @MainActor in self.commandProgress = p } },
-            // Arrives later only when we stopped waiting at "delivered".
-            onFinal: { r in Task { @MainActor in
-                if case .failed(let why) = r { self.holdLock = nil; self.holdPrecond = nil; self.reparse(); self.message = String(localized: "\(L(label)) didn't go through: \(why)") }
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                await self.refresh()
-            } })
-        let result = await block(remote, tracker)
-        commandLabel = nil
-        commandProgress = nil
-        switch result {
-        case .success, .delivered:
-            optimistic.map { f in if var st = status { f(&st); status = st } }
-            if !quiet {
-                showToast(result == .delivered ? String(localized: "\(L(label)) — the car got it") : String(localized: "\(L(label)) — done"))
-                Task {
-                    try? await Task.sleep(nanoseconds: 15_000_000_000)
-                    await self.refresh()
-                }
-            }
-        case .failed(let why):
-            holdLock = nil
-            holdPrecond = nil
-            reparse()
-            message = String(localized: "\(L(label)): \(why)")
-        }
-        return result
-    }
-
-    func lockCar(_ lock: Bool) async {
-        await runCommand(lock ? "Lock" : "Unlock", confirmWith: lock ? nil : "Unlock your car",
-                         optimistic: { [weak self] st in st.locked = lock; self?.holdLock = (lock, Date()) },
-                         demoCommand: lock ? "lock" : "unlock") { r, t in await r.lock(lock, t) }
-    }
-
-    func horn() async { await runCommand("Horn", confirmWith: "Sound the horn") { r, t in await r.horn(t) } }
-    func lights() async { await runCommand("Flash lights", confirmWith: nil) { r, t in await r.lights(t) } }
-
-    /// Asks the car to report now, then reads the fresh status.
-    var updatingFromCar = false
-
-    /// Wakes the car so it reports now, then checks every 10 s (up to 2 minutes) until a newer report arrives.
-    func wakeAndRefresh() async {
-        if isDemo { await refresh(); showToast(String(localized: "Updated — the car just reported")); return }
-        guard !updatingFromCar else { return }
-        updatingFromCar = true
-        defer { updatingFromCar = false }
-        let before = status?.updatedAt
-        guard let r = await runCommand("Updating from the car", confirmWith: nil, quiet: true, { r, t in await r.wakeUp(t) })
-        else { return }
-        if case .failed = r { return }
-        commandLabel = "Updating from the car"
-        commandProgress = "Waiting for the car to report…"
-        defer { commandLabel = nil; commandProgress = nil }
-        for _ in 0..<12 {
-            try? await Task.sleep(nanoseconds: 10_000_000_000)
-            await refresh()
-            if let now = status?.updatedAt, before.map({ now > $0 }) ?? true {
-                showToast(String(localized: "Updated — the car just reported"))
-                await loadTrips(recentOnly: true)
-                return
-            }
-        }
-        message = String(localized: "The car didn't send a new report yet. It may be out of mobile coverage (for example in a garage); try again later.")
-    }
-
-    /// Opens the remote-control connection early, so a command goes out faster.
-    func warmUpRemote() {
-        guard !isDemo, remote.isSetUp else { return }
-        let r = remote
-        Task { await r.warmUp() }
-    }
-
-    // MARK: Car tab layout
+    // MARK: - Car tab layout
 
     enum HomeCard: String, CaseIterable, Identifiable {
         case energy, charging, climate, doors, map, details
@@ -509,13 +412,9 @@ final class AppModel {
         }
     }
 
-    /// The cards in the user's order; hidden ones are left out of [visibleCards].
-    var homeOrder: [HomeCard] = AppModel.loadOrder() { didSet { saveLayout() } }
-    var hiddenCards: Set<HomeCard> = Set((UserDefaults.standard.stringArray(forKey: "homeHidden") ?? []).compactMap(HomeCard.init)) {
-        didSet { saveLayout() }
-    }
     var visibleCards: [HomeCard] { homeOrder.filter { !hiddenCards.contains($0) } }
 
+    /// The saved order, with cards added in a newer version appended at the end.
     private static func loadOrder() -> [HomeCard] {
         let saved = (UserDefaults.standard.stringArray(forKey: "homeOrder") ?? []).compactMap(HomeCard.init)
         return saved + HomeCard.allCases.filter { !saved.contains($0) }
@@ -528,7 +427,7 @@ final class AppModel {
 
     func resetLayout() { homeOrder = HomeCard.allCases; hiddenCards = [] }
 
-    // MARK: Cache (so the app opens with the last known state, before the network answers)
+    // MARK: - Cache (so the app opens with the last known state, before the network answers)
 
     private var cacheURL: URL? {
         guard let vin = vehicle?.vin, let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -555,6 +454,7 @@ final class AppModel {
         lastRefresh = j.num("at").map { Date(timeIntervalSince1970: $0) }
         loadedTripDays = Int(j.num("tripDays") ?? 0)
         reparse()
+        // reparse() stops early without a status, so parse the trips here.
         if rawStatus == nil { reparseTrips() }
     }
 

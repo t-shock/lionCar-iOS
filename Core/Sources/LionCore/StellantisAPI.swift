@@ -44,19 +44,23 @@ public actor StellantisAPI {
     // and remembered: the country's own language, then British English.
     private nonisolated var localeKey: String { "locale_\(brand.rawValue)_\(country)" }
     private nonisolated var locale: String { store.get(localeKey) ?? cfg.locale }
+    /// Switches to the next locale to try; false when there is none left.
     private func nextLocale() -> Bool {
-        let cc = country.uppercased()
-        let own = ["IS": "is", "NO": "nb", "DK": "da", "SE": "sv", "FI": "fi", "EE": "et", "LV": "lv", "LT": "lt"][cc]
-        var tries: [String] = []
-        for t in [cfg.locale, own.map { "\($0)-\(cc)" }, "en-GB", "fr-FR"].compactMap({ $0 }) where !tries.contains(t) { tries.append(t) }
-        guard let i = tries.firstIndex(of: locale), i + 1 < tries.count else { return false }
-        store.set(localeKey, tries[i + 1])
+        let countryCode = country.uppercased()
+        let ownLanguage = ["IS": "is", "NO": "nb", "DK": "da", "SE": "sv", "FI": "fi", "EE": "et", "LV": "lv", "LT": "lt"][countryCode]
+        var candidates: [String] = []
+        for candidate in [cfg.locale, ownLanguage.map { "\($0)-\(countryCode)" }, "en-GB", "fr-FR"].compactMap({ $0 })
+        where !candidates.contains(candidate) {
+            candidates.append(candidate)
+        }
+        guard let i = candidates.firstIndex(of: locale), i + 1 < candidates.count else { return false }
+        store.set(localeKey, candidates[i + 1])
         return true
     }
 
     private nonisolated func clientQuery() -> String { "client_id=\(cfg.clientID)&locale=\(locale)" }
 
-    private static func enc(_ s: String) -> String {
+    private static func percentEncode(_ s: String) -> String {
         s.addingPercentEncoding(withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))) ?? s
     }
 
@@ -74,9 +78,10 @@ public actor StellantisAPI {
 
     public func exchangeCode(_ code: String) async throws {
         try await tokenRequest("\(cfg.oauthURL)/am/oauth2/access_token?redirect_uri=\(cfg.redirectURI)" +
-                               "&grant_type=authorization_code&code=\(Self.enc(code))")
+                               "&grant_type=authorization_code&code=\(Self.percentEncode(code))")
     }
 
+    /// Single flight: callers that arrive during a refresh wait for it instead of spending the refresh token again.
     private func refreshOAuth() async throws {
         if let running = refreshing { return try await running.value }
         let task = Task { try await self.doRefresh() }
@@ -88,8 +93,9 @@ public actor StellantisAPI {
     private func doRefresh() async throws {
         guard let refresh = store.get(Self.kRefresh) else { throw AuthExpiredError() }
         do {
-            try await tokenRequest("\(cfg.oauthURL)/am/oauth2/access_token?grant_type=refresh_token&refresh_token=\(Self.enc(refresh))")
+            try await tokenRequest("\(cfg.oauthURL)/am/oauth2/access_token?grant_type=refresh_token&refresh_token=\(Self.percentEncode(refresh))")
         } catch let e as APIError where e.code == 400 || e.code == 401 {
+            // The refresh token itself was refused: only signing in again helps.
             throw AuthExpiredError()
         }
     }
@@ -109,32 +115,38 @@ public actor StellantisAPI {
         store.set(Self.kExpires, String(Date().timeIntervalSince1970 + expiresIn))
     }
 
+    /// A valid access token, refreshed when it has less than 5 minutes left.
     private func accessToken() async throws -> String {
-        let exp = Double(store.get(Self.kExpires) ?? "") ?? 0
-        if store.get(Self.kAccess) == nil || Date().timeIntervalSince1970 > exp - 5 * 60 { try await refreshOAuth() }
-        guard let t = store.get(Self.kAccess) else { throw AuthExpiredError() }
-        return t
+        let expires = Double(store.get(Self.kExpires) ?? "") ?? 0
+        if store.get(Self.kAccess) == nil || Date().timeIntervalSince1970 > expires - 5 * 60 { try await refreshOAuth() }
+        guard let token = store.get(Self.kAccess) else { throw AuthExpiredError() }
+        return token
     }
 
+    /// Runs a call with an access token; on a "bad locale" answer, switches locale (see nextLocale) and tries again.
     private func authed<T>(_ block: (String) async throws -> T) async throws -> T {
-        var n = 0
+        var localeSwitches = 0
         while true {
             do { return try await authedOnce(block) } catch let e as APIError {
-                if e.code == 400 && e.message.localizedCaseInsensitiveContains("locale") && n < 3 && nextLocale() { n += 1; continue }
+                if e.code == 400 && e.message.localizedCaseInsensitiveContains("locale") && localeSwitches < 3 && nextLocale() {
+                    localeSwitches += 1; continue
+                }
                 throw e
             }
         }
     }
 
+    /// One try, plus one more with a refreshed token if the server says the token is no longer valid (401).
     private func authedOnce<T>(_ block: (String) async throws -> T) async throws -> T {
         let token = try await accessToken()
         do { return try await block(token) } catch let e as APIError where e.code == 401 {
             try await refreshOAuth()
-            guard let t = store.get(Self.kAccess) else { throw AuthExpiredError() }
-            return try await block(t)
+            guard let fresh = store.get(Self.kAccess) else { throw AuthExpiredError() }
+            return try await block(fresh)
         }
     }
 
+    /// otpStyle: the headers the brand app sends to the remote-control endpoints (car associations, SMS, token).
     private func request(_ url: String, token: String, otpStyle: Bool = false) -> URLRequest {
         var r = URLRequest(url: URL(string: url)!)
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -168,22 +180,33 @@ public actor StellantisAPI {
             let r = request("\(Self.api)/connectedcar/v4/user/vehicles?\(clientQuery())&extension=branding", token: token)
             guard let j = try await HTTP.json(r) as? JSON else { throw APIError(0, "Empty vehicle list") }
             let all = (j.obj("_embedded")?.objects("vehicles") ?? []).compactMap { Vehicle.fromAPI($0, defaultBrand: brand.display) }
-            // The same car can come twice (e.g. shared with another account): keep the one in use.
-            var byVin: [String: [Vehicle]] = [:]
-            var order: [String] = []
-            for v in all { if byVin[v.vin] == nil { order.append(v.vin) }; byVin[v.vin, default: []].append(v) }
-            return order.map { vin in byVin[vin]!.first { v in before.contains { $0.id == v.id } } ?? byVin[vin]![0] }
+            return Self.onePerVIN(all, preferring: before)
         }
         // Fill in model details for the chosen car when the list doesn't say enough to tell what kind of hybrid it is.
         var updated = list
-        if let sel = pick(list), sel.needsBranding, let i = updated.firstIndex(of: sel) {
+        if let selected = pick(list), selected.needsBranding, let i = updated.firstIndex(of: selected) {
             let detail: JSON? = try? await authed { token in
-                try await HTTP.json(request("\(Self.api)/connectedcar/v4/user/vehicles/\(sel.id)?\(clientQuery())&extension=branding", token: token)) as? JSON
+                try await HTTP.json(request("\(Self.api)/connectedcar/v4/user/vehicles/\(selected.id)?\(clientQuery())&extension=branding", token: token)) as? JSON
             }
-            updated[i] = sel.withBrandingDetail(detail)
+            updated[i] = selected.withBrandingDetail(detail)
         }
         store.set(Self.kVehicles, String(decoding: JSONValue.data(updated.map { $0.toJSON() }), as: UTF8.self))
         return updated
+    }
+
+    /// The same car can come twice (e.g. shared with another account): keep the one already in use, else the first.
+    /// The list keeps the server's order.
+    private static func onePerVIN(_ all: [Vehicle], preferring inUse: [Vehicle]) -> [Vehicle] {
+        var byVIN: [String: [Vehicle]] = [:]
+        var vinOrder: [String] = []
+        for v in all {
+            if byVIN[v.vin] == nil { vinOrder.append(v.vin) }
+            byVIN[v.vin, default: []].append(v)
+        }
+        return vinOrder.map { vin in
+            let copies = byVIN[vin]!
+            return copies.first { copy in inUse.contains { $0.id == copy.id } } ?? copies[0]
+        }
     }
 
     public nonisolated func cachedVehicles() -> [Vehicle] {
@@ -192,9 +215,7 @@ public actor StellantisAPI {
     }
 
     /// The car chosen in the app (accounts can have several).
-    public nonisolated var selectedVIN: String? {
-        get { store.get(Self.kSelected).flatMap { $0.isEmpty ? nil : $0 } }
-    }
+    public nonisolated var selectedVIN: String? { store.get(Self.kSelected).flatMap { $0.isEmpty ? nil : $0 } }
     public nonisolated func select(vin: String?) { store.set(Self.kSelected, vin ?? "") }
 
     public nonisolated func pick(_ list: [Vehicle]) -> Vehicle? { list.first { $0.vin == selectedVIN } ?? list.first }
@@ -248,8 +269,30 @@ public actor StellantisAPI {
     }
 
     /// All trips from [from] until now, asked for week by week following the server's "next" links (asking for the
-    /// whole period at once could stop after the first page and leave out the newest trips). Four weeks at a time.
+    /// whole period at once could stop after the first page and leave out the newest trips). Four weeks are fetched
+    /// at the same time.
     public func allTrips(_ v: Vehicle, from: Date, until: Date = Date()) async throws -> [JSON] {
+        let windows = Self.weekWindows(from: from, until: until)
+        let results: [[JSON]] = try await withThrowingTaskGroup(of: (Int, [JSON]).self) { group in
+            var out = [[JSON]](repeating: [], count: windows.count)
+            var next = 0
+            func startNextWindow() {
+                guard next < windows.count else { return }
+                let i = next, (start, end) = windows[i]
+                next += 1
+                group.addTask { (i, try await self.tripsWindow(v, from: start, until: end)) }
+            }
+            for _ in 0..<4 { startNextWindow() }
+            while let (i, list) = try await group.next() { out[i] = list; startNextWindow() }
+            return out
+        }
+        var seen = Set<String>()
+        return results.joined().filter { seen.insert($0.optString("id")).inserted }
+    }
+
+    /// Week-long periods going back from [until] to [from], newest first. When [until] is about now, the newest period
+    /// is left open-ended (nil end).
+    private static func weekWindows(from: Date, until: Date) -> [(Date, Date?)] {
         let week: TimeInterval = 7 * 86_400
         var windows: [(Date, Date?)] = []
         var end: Date? = until.timeIntervalSinceNow > -60 ? nil : until
@@ -259,44 +302,32 @@ public actor StellantisAPI {
             if start <= from { break }
             end = start; start = start.addingTimeInterval(-week)
         }
-        let results: [[JSON]] = try await withThrowingTaskGroup(of: (Int, [JSON]).self) { group in
-            var out = [[JSON]](repeating: [], count: windows.count)
-            var next = 0
-            func add() {
-                guard next < windows.count else { return }
-                let i = next, (a, b) = windows[i]
-                next += 1
-                group.addTask { (i, try await self.tripsWindow(v, from: a, until: b)) }
-            }
-            for _ in 0..<4 { add() }
-            while let (i, list) = try await group.next() { out[i] = list; add() }
-            return out
-        }
-        var seen = Set<String>()
-        return results.joined().filter { seen.insert($0.optString("id")).inserted }
+        return windows
     }
 
-    private func tripsWindow(_ v: Vehicle, from a: Date, until b: Date?) async throws -> [JSON] {
-        var got: [String: JSON] = [:]
+    /// The trips of one period, page by page (at most 20 pages).
+    private func tripsWindow(_ v: Vehicle, from start: Date, until end: Date?) async throws -> [JSON] {
+        var byID: [String: JSON] = [:]
         var order: [String] = []
         var next: String? = nil
-        var n = 0
+        var pages = 0
         repeat {
-            let j: JSON
+            let page: JSON
             // "404 / 40400 No trip was found" just means no trips in this period.
-            do { j = try await trips(v, since: ISODate.format(a), until: b.map(ISODate.format), next: next) }
+            do { page = try await trips(v, since: ISODate.format(start), until: end.map(ISODate.format), next: next) }
             catch let e as APIError where e.noData { break }
-            var fresh = 0
-            for t in j.obj("_embedded")?.objects("trips") ?? [] {
-                let id = t.optString("id")
-                if got[id] == nil { order.append(id); fresh += 1 }
-                got[id] = t
+            var newTrips = 0
+            for trip in page.obj("_embedded")?.objects("trips") ?? [] {
+                let id = trip.optString("id")
+                if byID[id] == nil { order.append(id); newTrips += 1 }
+                byID[id] = trip
             }
-            next = j.obj("_links", "next")?.str("href").flatMap { $0.isEmpty ? nil : $0 }
-            n += 1
-            if fresh == 0 { break }
-        } while next != nil && n < 20
-        return order.compactMap { got[$0] }
+            next = page.obj("_links", "next")?.str("href").flatMap { $0.isEmpty ? nil : $0 }
+            pages += 1
+            // Stop when a page brings nothing new, so a "next" link that repeats can't loop.
+            if newTrips == 0 { break }
+        } while next != nil && pages < 20
+        return order.compactMap { byID[$0] }
     }
 
     // MARK: Remote control setup
@@ -320,7 +351,7 @@ public actor StellantisAPI {
         }
     }
 
-    /// First access token of the session — used as the OTP device id, like the reference implementation.
+    /// The current access token; its start becomes the OTP device id at activation, like the reference implementation.
     public nonisolated var currentAccessToken: String? { store.get(Self.kAccess) }
 
     public nonisolated func signOut() {

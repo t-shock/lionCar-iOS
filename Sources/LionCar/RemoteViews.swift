@@ -112,14 +112,14 @@ struct RemoteSettingsSection: View {
             if model.isDemo {
                 Text("Demo mode: commands are simulated. Your real remote-control setup is not touched.").font(.footnote)
             } else {
-            LabeledContent("Status", value: model.remoteReady ? L("Ready") : (model.remotePossible ? L("Not set up") : L("Not available")))
-            if model.remotePossible {
-                Button(model.remoteReady ? "Set up again" : "Set up remote control") { showSetup = true }
-            }
-            if model.remoteReady {
-                Button("Turn off remote control", role: .destructive) { confirmForget = true }
-            }
-            NavigationLink("Command log") { CommandLogView() }
+                LabeledContent("Status", value: model.remoteReady ? L("Ready") : (model.remotePossible ? L("Not set up") : L("Not available")))
+                if model.remotePossible {
+                    Button(model.remoteReady ? "Set up again" : "Set up remote control") { showSetup = true }
+                }
+                if model.remoteReady {
+                    Button("Turn off remote control", role: .destructive) { confirmForget = true }
+                }
+                NavigationLink("Command log") { CommandLogView() }
             }
         }
         .sheet(isPresented: $showSetup) { RemoteSetupView() }

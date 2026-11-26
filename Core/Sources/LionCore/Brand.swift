@@ -82,7 +82,7 @@ public enum StellantisConfig {
     nonisolated(unsafe) private static var cache: JSON?
 
     private static func root() -> JSON {
-        if let c = cache { return c }
+        if let cached = cache { return cached }
         let j = JSONValue.parse(stellantisConfigsJSON) as? JSON ?? [:]
         cache = j
         return j
@@ -93,16 +93,17 @@ public enum StellantisConfig {
         (root().obj(brand.configKey, "configs") ?? [:]).keys.sorted()
     }
 
-    /// Not every brand is available in every country: falls back to Norway, then Britain, then the first one listed.
+    /// Not every brand is available in every country: falls back to Norway, then Britain, then the first country
+    /// in alphabetical order.
     public static func load(_ brand: Brand, country: String) -> BrandConfig {
         let app = root().obj(brand.configKey) ?? [:]
-        let cfgs = app.obj("configs") ?? [:]
-        let cc = [country.uppercased(), "NO", "GB"].first { cfgs[$0] != nil } ?? cfgs.keys.sorted().first ?? "GB"
-        let c = cfgs.obj(cc) ?? [:]
+        let byCountry = app.obj("configs") ?? [:]
+        let countryCode = [country.uppercased(), "NO", "GB"].first { byCountry[$0] != nil } ?? byCountry.keys.sorted().first ?? "GB"
+        let countryConfig = byCountry.obj(countryCode) ?? [:]
         return BrandConfig(
             oauthURL: app.optString("oauth_url"), realm: app.optString("realm"), scheme: app.optString("scheme"),
-            locale: c.optString("locale"), clientID: c.optString("client_id"), clientSecret: c.optString("client_secret"),
-            culture: cc.lowercased())
+            locale: countryConfig.optString("locale"), clientID: countryConfig.optString("client_id"),
+            clientSecret: countryConfig.optString("client_secret"), culture: countryCode.lowercased())
     }
 
     /// The custom URL schemes the sign-in pages redirect to (mymap, mymacsdk, …).

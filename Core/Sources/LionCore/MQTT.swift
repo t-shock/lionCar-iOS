@@ -43,7 +43,7 @@ public enum MQTTPacket: Equatable, Sendable {
 
     /// Clean session, user name and password; an empty client id lets the broker assign one (Peugeot's requires that).
     public static func connect(clientID: String = "", username: String, password: String, keepAlive: UInt16) -> Data {
-        let flags: UInt8 = 0x80 | 0x40 | 0x02
+        let flags: UInt8 = 0x80 | 0x40 | 0x02  // user name, password, clean session
         let body = string("MQTT") + [4, flags, UInt8(keepAlive >> 8), UInt8(keepAlive & 0xff)]
             + string(clientID) + string(username) + string(password)
         return packet(0x10, body)
@@ -59,35 +59,40 @@ public enum MQTTPacket: Equatable, Sendable {
 
     /// Takes one complete packet off the front of the buffer, or returns nil if more bytes are needed.
     public static func decode(_ buffer: inout Data) -> MQTTPacket? {
-        let b = [UInt8](buffer)
-        guard b.count >= 2 else { return nil }
-        var mult = 1, len = 0, i = 1
+        let bytes = [UInt8](buffer)
+        guard bytes.count >= 2 else { return nil }
+        // Remaining length: 7 bits per byte, at most 4 bytes, after the first (type) byte.
+        var multiplier = 1, bodyLength = 0, headerLength = 1
         while true {
-            guard i < b.count, i <= 4 else { return nil }
-            let byte = Int(b[i]); i += 1
-            len += (byte & 0x7f) * mult
+            guard headerLength < bytes.count, headerLength <= 4 else { return nil }
+            let byte = Int(bytes[headerLength]); headerLength += 1
+            bodyLength += (byte & 0x7f) * multiplier
             if byte & 0x80 == 0 { break }
-            mult *= 128
+            multiplier *= 128
         }
-        guard b.count >= i + len else { return nil }
-        let body = Array(b[i..<(i + len)])
-        buffer.removeFirst(i + len)
-        let type = b[0] >> 4
+        guard bytes.count >= headerLength + bodyLength else { return nil }
+        let body = Array(bytes[headerLength..<(headerLength + bodyLength)])
+        buffer.removeFirst(headerLength + bodyLength)
+        let type = bytes[0] >> 4
         switch type {
-        case 2: return .connack(returnCode: body.count >= 2 ? body[1] : 255)
-        case 9:
+        case 2:  // CONNACK
+            return .connack(returnCode: body.count >= 2 ? body[1] : 255)
+        case 9:  // SUBACK
             guard body.count >= 2 else { return .other(type: type) }
             return .suback(packetID: UInt16(body[0]) << 8 | UInt16(body[1]), codes: Array(body.dropFirst(2)))
-        case 3:
+        case 3:  // PUBLISH
             guard body.count >= 2 else { return .other(type: type) }
-            let tl = Int(body[0]) << 8 | Int(body[1])
-            guard body.count >= 2 + tl else { return .other(type: type) }
-            let topic = String(decoding: body[2..<(2 + tl)], as: UTF8.self)
-            let qos = (b[0] >> 1) & 0x03
-            let start = 2 + tl + (qos > 0 ? 2 : 0)
-            return .publish(topic: topic, payload: Data(body[min(start, body.count)...]))
-        case 13: return .pingresp
-        default: return .other(type: type)
+            let topicLength = Int(body[0]) << 8 | Int(body[1])
+            guard body.count >= 2 + topicLength else { return .other(type: type) }
+            let topic = String(decoding: body[2..<(2 + topicLength)], as: UTF8.self)
+            let qos = (bytes[0] >> 1) & 0x03
+            // Above QoS 0 a packet id comes before the payload.
+            let payloadStart = 2 + topicLength + (qos > 0 ? 2 : 0)
+            return .publish(topic: topic, payload: Data(body[min(payloadStart, body.count)...]))
+        case 13:  // PINGRESP
+            return .pingresp
+        default:
+            return .other(type: type)
         }
     }
 }
@@ -98,9 +103,11 @@ public actor MQTTClient {
     private var buffer = Data()
     private var reader: Task<Void, Never>?
     private var pinger: Task<Void, Never>?
-    /// The one CONNACK/SUBACK wait in progress (connect and subscribe run one after the other), and any that came early.
+    /// The one CONNACK/SUBACK wait in progress (connect and subscribe run one after the other).
     private var waiter: (token: Int, continuation: CheckedContinuation<MQTTPacket, Error>)?
+    /// CONNACK/SUBACKs that came before anyone waited for them.
     private var controlBuffer: [MQTTPacket] = []
+    /// Tells a wait's timer whether its wait is still the current one.
     private var waitToken = 0
     /// How long to wait for the broker's CONNACK / SUBACK.
     var controlTimeout: Double = 20
@@ -129,6 +136,11 @@ public actor MQTTClient {
             throw MQTTError(code: Int(rc), message: "The broker refused the login (MQTT code \(rc))")
         }
         isConnected = true
+        startPinger(keepAlive: keepAlive)
+    }
+
+    /// Pings at half the keep-alive interval, so the broker doesn't drop a quiet connection.
+    private func startPinger(keepAlive: UInt16) {
         pinger = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(keepAlive) / 2 * 1_000_000_000)
@@ -151,7 +163,13 @@ public actor MQTTClient {
     }
 
     public func close() {
-        if isConnected { let t = transport; Task { try? await t.send(MQTTPacket.disconnect); t.close() } } else { transport.close() }
+        if isConnected {
+            // Say goodbye to the broker first, then close the socket.
+            let t = transport
+            Task { try? await t.send(MQTTPacket.disconnect); t.close() }
+        } else {
+            transport.close()
+        }
         isConnected = false
         reader?.cancel(); pinger?.cancel()
         reader = nil; pinger = nil
@@ -161,7 +179,7 @@ public actor MQTTClient {
     public func setControlTimeout(_ seconds: Double) { controlTimeout = seconds }
 
     private func failWaiter(_ message: String) {
-        if let w = waiter { waiter = nil; w.continuation.resume(throwing: MQTTError(code: 0, message: message)) }
+        if let current = waiter { waiter = nil; current.continuation.resume(throwing: MQTTError(code: 0, message: message)) }
     }
 
     /// The next CONNACK/SUBACK, also if it arrived before we started waiting; gives up after [controlTimeout].
@@ -202,11 +220,11 @@ public actor MQTTClient {
 
     private func feed(_ chunk: Data) async {
         buffer.append(chunk)
-        while let p = MQTTPacket.decode(&buffer) {
-            switch p {
+        while let packet = MQTTPacket.decode(&buffer) {
+            switch packet {
             case .publish(let topic, let payload): await onMessage(topic, payload)
             case .connack, .suback:
-                if let w = waiter { waiter = nil; w.continuation.resume(returning: p) } else { controlBuffer.append(p) }
+                if let current = waiter { waiter = nil; current.continuation.resume(returning: packet) } else { controlBuffer.append(packet) }
             default: break
             }
         }

@@ -66,29 +66,30 @@ public final class ChargeLog {
         self.store = store; self.vin = vin; self.power = power
     }
 
+    /// A session open for longer than this without a report (phone off, car asleep) is closed.
+    private static let staleAfter: TimeInterval = 24 * 3600
+    private static let maxSessions = 500
+    /// Matching radius around Home and around a known charger.
+    private static let homeRadiusM = 50.0
+    private static let knownRadiusM = 75.0
+
+    /// Store key "cl_<name>_<vin>". Saved data depends on these names.
     private func k(_ name: String) -> String { vin.isEmpty ? "cl_\(name)" : "cl_\(name)_\(vin)" }
 
-    public var sessions: [ChargeSession] {
-        guard let s = store.get(k("sessions")), let d = s.data(using: .utf8) else { return [] }
-        return (try? JSONDecoder().decode([ChargeSession].self, from: d)) ?? []
-    }
+    public var sessions: [ChargeSession] { store.storedCodable(k("sessions"), as: [ChargeSession].self) ?? [] }
 
-    private func save(_ list: [ChargeSession]) {
-        store.set(k("sessions"), (try? JSONEncoder().encode(list)).map { String(decoding: $0, as: UTF8.self) })
-    }
+    private func save(_ list: [ChargeSession]) { store.storeCodable(k("sessions"), list) }
 
     /// Places are shared by all cars.
     public var places: PlacesConfig {
-        get {
-            guard let s = store.get("cl_places"), let d = s.data(using: .utf8) else { return PlacesConfig() }
-            return (try? JSONDecoder().decode(PlacesConfig.self, from: d)) ?? PlacesConfig()
-        }
-        set { store.set("cl_places", (try? JSONEncoder().encode(newValue)).map { String(decoding: $0, as: UTF8.self) }) }
+        get { store.storedCodable("cl_places", as: PlacesConfig.self) ?? PlacesConfig() }
+        set { store.storeCodable("cl_places", newValue) }
     }
 
+    /// The open session as stored: start, startPct, startKwh, lastT, lastPct, lastKwh, usable, peak, mode, lat, lon.
     private var activeJSON: JSON? {
-        get { store.get(k("active")).flatMap { JSONValue.parse($0) as? JSON } }
-        set { store.set(k("active"), newValue.map { String(decoding: JSONValue.data($0), as: UTF8.self) }) }
+        get { store.storedJSON(k("active")) as? JSON }
+        set { store.storeJSON(k("active"), newValue) }
     }
 
     /// The session in progress (end = last report so far).
@@ -99,61 +100,69 @@ public final class ChargeLog {
     public func observe(_ st: VehicleStatus, now: Date = Date()) -> ChargeSession? {
         guard st.energyType != "Fuel", let pct = st.batteryPct else { return nil }
         let t = (st.energyAt ?? st.updatedAt ?? now).timeIntervalSince1970
-        var a = activeJSON
+        var open = activeJSON
         var finished: ChargeSession?
-        // A session left open for over a day (phone off, car asleep) is closed first.
-        if let open = a, t - (open.num("lastT") ?? t) > 24 * 3600 { finished = finish(open, nil, nil, nil); a = nil }
+        if let stale = open, t - (stale.num("lastT") ?? t) > Self.staleAfter { finished = finish(stale); open = nil }
 
         if st.isCharging {
-            let kw = power.reading(st).flatMap { $0.measured ? $0.kw : nil }
-            if var x = a {
-                if x["lat"] == nil, let la = st.lat, let lo = st.lon { x["lat"] = la; x["lon"] = lo }
-                if let kw, kw > (x.num("peak") ?? 0) { x["peak"] = kw }
-                if st.chargingMode == "Quick" { x["mode"] = "Quick" }
-                x["usable"] = power.usableKwh(st)
-                a = x
-            } else {
-                var x: JSON = ["start": t, "startPct": pct, "usable": power.usableKwh(st)]
-                if let r = st.residualKwh { x["startKwh"] = r }
-                if let la = st.lat, let lo = st.lon { x["lat"] = la; x["lon"] = lo }
-                if let m = st.chargingMode { x["mode"] = m }
-                if let kw { x["peak"] = kw }
-                a = x
-            }
-            if var x = a, t >= (x.num("lastT") ?? 0) {
-                x["lastT"] = t; x["lastPct"] = pct
-                if let r = st.residualKwh { x["lastKwh"] = r } else { x["lastKwh"] = nil }
-                a = x
-            }
-            activeJSON = a
-        } else if let open = a {
+            activeJSON = continued(open, with: st, pct: pct, at: t)
+        } else if let open {
             // Charging stopped. If this report shows a higher level (finished while nobody was looking), use it.
             let higher = pct > (open.num("lastPct") ?? pct) && t > (open.num("lastT") ?? t)
-            finished = finish(open, higher ? pct : nil, higher ? t : nil, higher ? st.residualKwh : nil) ?? finished
+            finished = higher ? finish(open, endPct: pct, endT: t, endKwh: st.residualKwh) : finish(open)
         }
         return finished
     }
 
-    private func finish(_ a: JSON, _ endPct: Double?, _ endT: Double?, _ endKwh: Double?) -> ChargeSession? {
+    /// The open session updated with a charging report, or a new session started from it.
+    private func continued(_ open: JSON?, with st: VehicleStatus, pct: Double, at t: Double) -> JSON {
+        let kw = power.reading(st).flatMap { $0.measured ? $0.kw : nil }
+        var session: JSON
+        if var x = open {
+            if x["lat"] == nil, let la = st.lat, let lo = st.lon { x["lat"] = la; x["lon"] = lo }
+            if let kw, kw > (x.num("peak") ?? 0) { x["peak"] = kw }
+            if st.chargingMode == "Quick" { x["mode"] = "Quick" }
+            x["usable"] = power.usableKwh(st)
+            session = x
+        } else {
+            session = ["start": t, "startPct": pct, "usable": power.usableKwh(st)]
+            if let r = st.residualKwh { session["startKwh"] = r }
+            if let la = st.lat, let lo = st.lon { session["lat"] = la; session["lon"] = lo }
+            if let m = st.chargingMode { session["mode"] = m }
+            if let kw { session["peak"] = kw }
+        }
+        // An older report seen late doesn't move the end back.
+        if t >= (session.num("lastT") ?? 0) {
+            session["lastT"] = t; session["lastPct"] = pct
+            if let r = st.residualKwh { session["lastKwh"] = r } else { session["lastKwh"] = nil }
+        }
+        return session
+    }
+
+    /// Closes the open session and saves it, unless it is too small to count (under 0.3 kWh, or under 2 minutes
+    /// without gaining 1 %). The end values, when given, replace the last ones seen while charging.
+    private func finish(_ open: JSON, endPct: Double? = nil, endT: Double? = nil, endKwh: Double? = nil) -> ChargeSession? {
         activeJSON = nil
-        let s = toSession(a, endPct, endT, endKwh)
+        let s = toSession(open, endPct: endPct, endT: endT, endKwh: endKwh)
         if s.kwh < 0.3 || (s.end - s.start < 120 && s.endPct - s.startPct < 1) { return nil }
-        save(Array(([s] + sessions).prefix(500)))
+        save(Array(([s] + sessions).prefix(Self.maxSessions)))
         return s
     }
 
-    private func toSession(_ a: JSON, _ endPct: Double? = nil, _ endT: Double? = nil, _ endKwh: Double? = nil) -> ChargeSession {
+    /// kWh comes from the energy the car reported when it rose; otherwise from the % gained × battery size.
+    private func toSession(_ a: JSON, endPct: Double? = nil, endT: Double? = nil, endKwh: Double? = nil) -> ChargeSession {
         let start = a.num("start") ?? 0
         let startPct = a.num("startPct") ?? 0
         let lastPct = endPct ?? a.num("lastPct") ?? startPct
-        let startKwh = a.num("startKwh")
-        let lastKwh = endKwh ?? a.num("lastKwh")
-        let usable = a.num("usable") ?? 73
-        let measured = startKwh != nil && lastKwh != nil && lastKwh! > startKwh!
-        let kwh = measured ? lastKwh! - startKwh! : max(0, (lastPct - startPct) / 100 * usable)
-        return ChargeSession(start: start, end: endT ?? a.num("lastT") ?? start, startPct: startPct, endPct: lastPct, kwh: kwh,
+        let usable = a.num("usable") ?? ChargePower.defaultElectricKwh
+        var measuredKwh: Double?
+        if let startKwh = a.num("startKwh"), let lastKwh = endKwh ?? a.num("lastKwh"), lastKwh > startKwh {
+            measuredKwh = lastKwh - startKwh
+        }
+        return ChargeSession(start: start, end: endT ?? a.num("lastT") ?? start, startPct: startPct, endPct: lastPct,
+                             kwh: measuredKwh ?? max(0, (lastPct - startPct) / 100 * usable),
                              peakKw: a.num("peak"), mode: a.str("mode"), lat: a.num("lat"), lon: a.num("lon"), address: nil,
-                             measured: measured)
+                             measured: measuredKwh != nil)
     }
 
     public func delete(_ s: ChargeSession) { save(sessions.filter { $0.start != s.start }) }
@@ -172,11 +181,11 @@ public final class ChargeLog {
 
     public static func match(_ s: ChargeSession, _ cfg: PlacesConfig) -> PlaceMatch {
         if let lat = s.lat, let lon = s.lon {
-            if let h = cfg.home, let hl = h.lat, let ho = h.lon, Geo.distanceM(lat, lon, hl, ho) <= 50 {
+            if let h = cfg.home, let hl = h.lat, let ho = h.lon, Geo.distanceM(lat, lon, hl, ho) <= homeRadiusM {
                 return PlaceMatch(kind: "home", label: "Home", price: h.price)
             }
             for p in cfg.known {
-                if let pl = p.lat, let po = p.lon, Geo.distanceM(lat, lon, pl, po) <= 75 {
+                if let pl = p.lat, let po = p.lon, Geo.distanceM(lat, lon, pl, po) <= knownRadiusM {
                     return PlaceMatch(kind: "known", label: p.name.isEmpty ? "Known charger" : p.name, price: p.price)
                 }
             }

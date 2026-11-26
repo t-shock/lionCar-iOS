@@ -6,6 +6,7 @@ import LionCore
 /// so a background refresh can use them; never synced to iCloud or copied to another phone.
 final class KeychainStore: SecretStore, @unchecked Sendable {
     private let service = "lioncar"
+    /// `set` is an update, then an add if missing: the lock keeps two callers from both adding the same key.
     private let lock = NSLock()
 
     private func query(_ key: String) -> [String: Any] {

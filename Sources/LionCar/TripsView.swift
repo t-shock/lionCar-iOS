@@ -129,12 +129,7 @@ struct TripsView: View {
         }
     }
 
-    private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading) {
-            Text(value).font(.title3.bold())
-            Text(label).font(.caption).foregroundStyle(.secondary)
-        }
-    }
+    private func stat(_ value: String, _ caption: String) -> some View { StatFigure(value: value, caption: caption) }
 }
 
 extension URL: @retroactive Identifiable { public var id: String { absoluteString } }

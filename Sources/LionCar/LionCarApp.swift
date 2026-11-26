@@ -19,11 +19,13 @@ struct LionCarApp: App {
         .backgroundTask(.appRefresh(AppModel.refreshTaskID)) { await model.backgroundRefresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { AppModel.scheduleBackgroundRefresh() }
-            // Fresh data when the app comes back, unless it updated in the last 5 minutes (as LionFlow does).
-            if phase == .active, model.phase == .ready { model.warmUpRemote() }
-            if phase == .active, model.phase == .ready,
-               (model.lastRefresh.map { Date().timeIntervalSince($0) > 300 } ?? true) {
-                Task { await model.refresh() }
+            if phase == .active, model.phase == .ready {
+                // Connect early, so a command sent right after opening the app goes out faster.
+                model.warmUpRemote()
+                // Fresh data when the app comes back, unless it updated in the last 5 minutes (as LionFlow does).
+                if model.lastRefresh.map({ Date().timeIntervalSince($0) > 300 }) ?? true {
+                    Task { await model.refresh() }
+                }
             }
         }
     }
@@ -33,7 +35,6 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        @Bindable var model = model
         Group {
             switch model.phase {
             case .signedOut: SignInView()

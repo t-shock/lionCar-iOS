@@ -40,7 +40,8 @@ public enum CarAlerts {
             Alert(kind: .unlocked, title: "\(carName) is unlocked", body: "It has been parked unlocked since \(timeText(st.updatedAt)).")
         }
 
-        let level = st.energyType == "Fuel" ? st.batteryPct : (st.energyType == "Hybrid" ? st.fuelPct : st.batteryPct)
+        // A hybrid warns about its tank. On a petrol / diesel car batteryPct already is the tank.
+        let level = st.energyType == "Hybrid" ? st.fuelPct : st.batteryPct
         let isFuel = st.energyType != "Electric"
         evaluate(.lowEnergy, on: (level ?? 100) <= settings.lowPct && !st.isCharging, enabled: settings.lowEnergy,
                  clear: (level ?? 0) >= settings.lowPct + 10) {

@@ -20,9 +20,9 @@ public enum JSONValue {
 extension Dictionary where Key == String, Value == Any {
     /// Nested object at a path, like LionFlow's `obj("a", "b")`.
     public func obj(_ path: String...) -> JSON? {
-        var cur: JSON? = self
-        for p in path { cur = cur?[p] as? JSON }
-        return cur
+        var current: JSON? = self
+        for key in path { current = current?[key] as? JSON }
+        return current
     }
 
     /// The value as text; nil when missing or null (org.json `str`).
@@ -49,7 +49,13 @@ extension Dictionary where Key == String, Value == Any {
         guard let v = self[key], !(v is NSNull) else { return nil }
         if let b = v as? Bool { return b }
         if let n = v as? NSNumber { return n.boolValue }
-        if let s = v as? String { return s.lowercased() == "true" ? true : (s.lowercased() == "false" ? false : nil) }
+        if let s = v as? String {
+            switch s.lowercased() {
+            case "true": return true
+            case "false": return false
+            default: return nil
+            }
+        }
         return nil
     }
 

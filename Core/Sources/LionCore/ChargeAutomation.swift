@@ -37,7 +37,7 @@ public enum ChargeAutomation {
     // MARK: Limit
 
     public struct LimitState: Codable, Equatable, Sendable {
-        /// Start of the charging session this state belongs to (0 = unknown).
+        /// Start of the charging session this state belongs to (0 = unknown session, -1 = none yet).
         public var session: Double = -1
         public var tries = 0
         public var lastTry: Double = 0

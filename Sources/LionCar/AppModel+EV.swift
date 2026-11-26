@@ -97,6 +97,7 @@ extension AppModel {
     /// Turns off the car's scheduled (delayed) start, so it charges as soon as it is plugged in. "Stop charging" (also
     /// from the charge limit or charging times) works by setting that scheduled start, so it can stay on afterwards.
     func clearScheduledStart() async {
+        // The charging command always carries a start time; keep the car's own.
         let h = status?.nextDelayedHour ?? 1, m = status?.nextDelayedMinute ?? 0
         await runCommand("Turn off scheduled start", confirmWith: nil,
                          optimistic: { s in s.nextDelayedHour = nil; s.nextDelayedMinute = nil },
@@ -124,9 +125,10 @@ extension AppModel {
                                  demoCommand: "programs", demoPrograms: list) { r, t in
             await r.preconditioning(on, programs: VehicleStatus.programsJSON(list), t)
         }
-        if let r {
-            if case .failed = r {} else { power?.setPendingPrograms(list) }
-        }
+        // The car reports a new schedule late: remember what was sent, to show it meanwhile.
+        guard let r else { return }
+        if case .failed = r { return }
+        power?.setPendingPrograms(list)
     }
 
     /// The car's own limit: daily (stops at the limit set in the car) or a full charge for a trip.
@@ -137,6 +139,7 @@ extension AppModel {
     }
 
     func charging(startNow: Bool) async {
+        // As above: keep the car's own scheduled start time.
         let h = status?.nextDelayedHour ?? 1, m = status?.nextDelayedMinute ?? 0
         await runCommand(startNow ? "Charge now" : "Stop charging", confirmWith: nil,
                          optimistic: { s in s.chargingStatus = startNow ? "InProgress" : "Stopped" },
@@ -177,6 +180,7 @@ extension AppModel {
         defaults.set(s.windowTo, forKey: "windowTo_\(vin)")
     }
 
+    /// Per-car memory of what the automation already tried, so it doesn't resend the same command on every refresh.
     private func loadState<T: Codable>(_ key: String, _ empty: T) -> T {
         guard let vin = vehicle?.vin, let d = defaults.data(forKey: "\(key)_\(vin)"), let v = try? JSONDecoder().decode(T.self, from: d) else { return empty }
         return v
@@ -197,6 +201,7 @@ extension AppModel {
                                            kw: power.reading(st)?.kw, usableKwh: power.usableKwh(st))
         saveState("limitState", limitState)
         var windowState = loadState("windowState", ChargeAutomation.WindowState())
+        // The limit's decision wins; the window is checked again on the next refresh.
         let window = limit.action == nil ? ChargeAutomation.window(st, s, state: &windowState) : ChargeAutomation.Decision()
         saveState("windowState", windowState)
         for d in [limit, window] {

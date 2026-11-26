@@ -27,24 +27,7 @@ struct StatsView: View {
                     HStack { ProgressView(); Text("Loading a year of trips…").foregroundStyle(.secondary) }
                 }
                 lifetime
-                if !months.isEmpty {
-                    Section("Per month") {
-                        if !electric {
-                            Picker("Show", selection: $metric) {
-                                ForEach(Metric.allCases.filter { $0 != .cost || model.fuelPrice != nil }) { Text($0.title).tag($0) }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                        Chart(months.reversed()) { m in
-                            BarMark(x: .value("Month", m.start, unit: .month), y: .value("Value", value(m)))
-                                .foregroundStyle(Theme.accent.gradient)
-                                .cornerRadius(4)
-                        }
-                        .chartXAxis { AxisMarks(values: .stride(by: .month)) { _ in AxisValueLabel(format: .dateTime.month(.narrow)) } }
-                        .frame(height: 180)
-                        ForEach(months) { m in monthRow(m, electric: electric) }
-                    }
-                }
+                if !months.isEmpty { perMonth(months, electric: electric) }
                 fillUps(electric: electric)
                 records
                 if model.fuelPrice == nil && !electric {
@@ -57,6 +40,26 @@ struct StatsView: View {
             .navigationTitle("Stats")
             .task { if model.loadedTripDays < 365 { await model.loadTrips(days: 365) } }
             .refreshable { await model.loadTrips(recentOnly: true) }
+        }
+    }
+
+    /// Bar chart of the chosen metric (oldest month first), then one row per month.
+    private func perMonth(_ months: [Stats.Month], electric: Bool) -> some View {
+        Section("Per month") {
+            if !electric {
+                Picker("Show", selection: $metric) {
+                    ForEach(Metric.allCases.filter { $0 != .cost || model.fuelPrice != nil }) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+            Chart(months.reversed()) { m in
+                BarMark(x: .value("Month", m.start, unit: .month), y: .value("Value", value(m)))
+                    .foregroundStyle(Theme.accent.gradient)
+                    .cornerRadius(4)
+            }
+            .chartXAxis { AxisMarks(values: .stride(by: .month)) { _ in AxisValueLabel(format: .dateTime.month(.narrow)) } }
+            .frame(height: 180)
+            ForEach(months) { m in monthRow(m, electric: electric) }
         }
     }
 

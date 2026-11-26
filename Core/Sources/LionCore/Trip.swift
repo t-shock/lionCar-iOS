@@ -51,6 +51,7 @@ public struct Trip: Identifiable, Equatable, Sendable {
             if let d = duration, d >= 60, km > 0 { return km / (d / 3600) }
             return km > 0 ? t.obj("kinetic")?.num("avgSpeed") : nil
         }()
+        let onBattery = electric != nil
         func point(_ key: String, _ i: Int) -> Double? {
             guard let c = t.obj(key, "geometry")?["coordinates"] as? [Any], c.count > i else { return nil }
             return (c[i] as? NSNumber)?.doubleValue
@@ -69,10 +70,10 @@ public struct Trip: Identifiable, Equatable, Sendable {
             startLat: point("startPosition", 1), startLon: point("startPosition", 0),
             stopLat: point("stopPosition", 1), stopLon: point("stopPosition", 0),
             dataLacking: t.objects("faults").contains { $0.optString("fault") == "DataLacking" },
-            startLevel: level(t, "startEnergies", "level", electric: electric != nil),
-            endLevel: level(t, "endEnergies", "level", electric: electric != nil),
-            startRangeKm: level(t, "startEnergies", "autonomy", electric: electric != nil),
-            endRangeKm: level(t, "endEnergies", "autonomy", electric: electric != nil),
+            startLevel: level(t, "startEnergies", "level", electric: onBattery),
+            endLevel: level(t, "endEnergies", "level", electric: onBattery),
+            startRangeKm: level(t, "startEnergies", "autonomy", electric: onBattery),
+            endRangeKm: level(t, "endEnergies", "autonomy", electric: onBattery),
             startMileage: t.num("startMileage"))
     }
 

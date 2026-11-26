@@ -59,7 +59,7 @@ public struct VehicleStatus: @unchecked Sendable {
     public var alarmActive: Bool?
     // More of what the car reports
     public var coolantTempC: Double?
-    /// "Left/Front" style names of fog lights / indicators that are on.
+    /// Fog lights / indicators that are on, each as its direction and position joined by a space.
     public var fogLightsOn: [String] = []
     public var indicatorsOn: [String] = []
     public var driveMode: String?
@@ -111,47 +111,31 @@ public struct VehicleStatus: @unchecked Sendable {
     public static func parse(_ j: JSON, maintenance: JSON?, mildHybrid: Bool = false, requireChargingEvidence: Bool = false) -> VehicleStatus {
         let energies = j.objects("energies")
         let reportedElectric = energies.first { $0.optString("type") == "Electric" }
-        let reportedCharging = reportedElectric?.obj("extension", "electric", "charging")
-        // Stellantis can report a full or partial charge target even when the car is unplugged.
-        let supportsExternalCharging = reportedCharging?.bool("plugged") == true ||
-            ["InProgress", "Finished"].contains(reportedCharging?.str("status") ?? "") ||
-            ["Full", "Partial"].contains(reportedCharging?.str("type") ?? "")
-        let fuelOnly = mildHybrid || (requireChargingEvidence && !supportsExternalCharging)
+        let fuelOnly = mildHybrid || (requireChargingEvidence && !chargesFromPlug(reportedElectric))
         let electric = fuelOnly ? nil : reportedElectric
         let fuel = energies.first { $0.optString("type") == "Fuel" }
+        let fuelConsumptions = fuel?.obj("extension", "fuel", "consumptions")
         let charging = electric?.obj("extension", "electric", "charging")
         let health = electric?.obj("extension", "electric", "battery", "health")
-        let load = electric?.obj("extension", "electric", "battery", "load")
-        func kwh(_ k: String) -> Double? { load?.num(k).flatMap { $0 >= 1 ? $0 / 1000 : nil } }
-        let cap = kwh("capacity").flatMap { (30...130).contains($0) ? $0 : nil }
-        let res = kwh("residual").flatMap { cap == nil || $0 <= cap! * 1.05 ? $0 : nil }
-        let doors = j.obj("doorsState")
-        let lockedStates = doors?.strings("lockedStates") ?? []
-        let openings = (doors?.objects("opening") ?? []).filter { $0.optString("state") == "Open" }.map { $0.optString("identifier") }
+        let energy = tractionEnergy(electric?.obj("extension", "electric", "battery", "load"))
+        let lockedStates = j.obj("doorsState")?.strings("lockedStates") ?? []
+        let openDoors = (j.obj("doorsState")?.objects("opening") ?? []).filter { $0.optString("state") == "Open" }
+            .map { $0.optString("identifier") }
         let coords = j.obj("lastPosition", "geometry")?["coordinates"] as? [Any]
         let ac = j.obj("preconditioning", "airConditioning")
-        let programs: [Program] = (ac?.objects("programs") ?? []).compactMap { p in
-            guard let start = ISODate.parsePT(p.str("start")) else { return nil }
-            let days = p.obj("occurence")?.strings("day") ?? []
-            return Program(slot: Int(p.num("slot") ?? 0), days: days, hour: start.hours, minute: start.minutes, enabled: p.bool("enabled") ?? false)
-        }
         let next = ISODate.parsePT(charging?.str("nextDelayedTime"))
         let remaining = ISODate.parsePT(charging?.str("remainingTime")).map { $0.hours * 60 + $0.minutes }
         let m = maintenance ?? j.obj("maintenance")
         // The small battery of a mild hybrid sits in the "Electric" energy even though it can't be charged from a plug.
-        let small = (mildHybrid || fuelOnly) ? reportedElectric?.obj("extension", "electric", "battery") : nil
+        let small = fuelOnly ? reportedElectric?.obj("extension", "electric", "battery") : nil
 
-        func coord(_ i: Int) -> Double? {
-            guard let c = coords, c.count > i else { return nil }
-            if let n = c[i] as? NSNumber { return n.doubleValue }
-            return nil
-        }
+        // Petrol/diesel cars: the fuel tank stands in for the battery. A plug-in hybrid never shows the tank as its battery.
         let batteryPct: Double? = electric.map { hybridLevel($0, fuel: fuel, charging: charging) } ?? fuel?.num("level")
+        // With an electric energy, its range is used even when missing (a plug-in hybrid without a level has 0 km).
         let rangeKm: Double? = electric.map { e in e.num("autonomy") ?? (fuel != nil && e.num("level") == nil ? 0 : nil) } ?? fuel?.num("autonomy")
 
         var st = VehicleStatus(
             raw: j,
-            // Petrol/diesel cars: the fuel tank stands in for the battery. A plug-in hybrid never shows the tank as its battery.
             batteryPct: batteryPct,
             rangeKm: rangeKm,
             plugged: charging?.bool("plugged") ?? false,
@@ -163,17 +147,17 @@ public struct VehicleStatus: @unchecked Sendable {
             batteryHealthPct: health?.num("capacity") ?? health?.num("resistance"),
             odometerKm: j.obj("odometer")?.num("mileage"),
             locked: lockedStates.isEmpty ? nil : lockedStates.contains { $0.contains("Locked") && !$0.contains("Unlocked") },
-            openDoors: openings,
+            openDoors: openDoors,
             outsideTempC: j.obj("environment", "air")?.num("temp"),
             preconditioningOn: ac?.optString("status") == "Enabled",
-            programs: programs,
-            lat: coord(1), lon: coord(0),
+            programs: programs(ac),
+            lat: coordinate(coords, 1), lon: coordinate(coords, 0),
             ignition: j.obj("ignition")?.str("type"),
             moving: j.obj("kinetic")?.bool("moving") ?? false,
             updatedAt: ISODate.parse(j.str("updatedAt")),
             kmToService: m?.num("mileageBeforeMaintenance"),
             daysToService: m?.num("daysBeforeMaintenance"),
-            residualKwh: res, capacityKwh: cap,
+            residualKwh: energy.residualKwh, capacityKwh: energy.capacityKwh,
             energyAt: ISODate.parse(electric?.str("updatedAt")))
         st.chargeType = charging?.str("type")
         // Non-plug-in hybrids use the fuel-only display.
@@ -183,15 +167,11 @@ public struct VehicleStatus: @unchecked Sendable {
         st.fuelRangeKm = fuel?.num("autonomy")
         st.smallBatteryWh = small?.obj("load")?.num("residual")
         st.smallBatteryHealthPct = small?.obj("health")?.num("capacity")
-        st.fuelTotalRaw = fuel?.obj("extension", "fuel", "consumptions")?.num("total")
+        st.fuelTotalRaw = fuelConsumptions?.num("total")
         st.alarmActive = j.obj("alarm", "status")?.str("activation").map { $0 == "Active" }
         st.coolantTempC = j.objects("engines").first?.obj("extension", "thermic", "coolant")?.num("temp")
-        func lightsOn(_ key: String) -> [String] {
-            (j.obj("lightingSystem")?.objects(key) ?? []).filter { $0.optString("status") == "On" }
-                .map { [$0.str("direction"), $0.str("position")].compactMap { $0 }.joined(separator: " ") }
-        }
-        st.fogLightsOn = lightsOn("fog")
-        st.indicatorsOn = lightsOn("turn")
+        st.fogLightsOn = lightsOn(j, "fog")
+        st.indicatorsOn = lightsOn(j, "turn")
         st.driveMode = j.obj("drivingBehavior")?.str("mode")
         st.gearboxMode = j.obj("transmission", "gearbox")?.str("mode")
         st.powertrainStatus = j.obj("powertrain")?.str("status")
@@ -201,9 +181,50 @@ public struct VehicleStatus: @unchecked Sendable {
         st.gpsSignalQuality = j.obj("lastPosition", "properties")?.num("signalQuality")
         st.seatbelts = (j.obj("safety")?.objects("beltStatus") ?? []).compactMap { $0.str("belt") }
         st.batteryVoltage = j.obj("battery")?.num("voltage")
-        st.carConsumption = fuel?.obj("extension", "fuel", "consumptions")?.num("instant")
+        st.carConsumption = fuelConsumptions?.num("instant")
             ?? j.objects("energy").first { $0.optString("type") == "Fuel" }?.num("consumption")
         return st
+    }
+
+    /// Whether the "Electric" energy shows the car charges from a plug. Stellantis reports a full or partial charge
+    /// target even while the car is unplugged, so that counts too.
+    private static func chargesFromPlug(_ electric: JSON?) -> Bool {
+        let charging = electric?.obj("extension", "electric", "charging")
+        return charging?.bool("plugged") == true ||
+            ["InProgress", "Finished"].contains(charging?.str("status") ?? "") ||
+            ["Full", "Partial"].contains(charging?.str("type") ?? "")
+    }
+
+    /// Traction-battery size and energy left, in kWh (the car sends Wh; below 1 means not reported). A size outside
+    /// 30–130 kWh isn't believed, nor energy more than 5 % above the size.
+    private static func tractionEnergy(_ load: JSON?) -> (capacityKwh: Double?, residualKwh: Double?) {
+        func kwh(_ key: String) -> Double? { load?.num(key).flatMap { $0 >= 1 ? $0 / 1000 : nil } }
+        let capacity = kwh("capacity").flatMap { (30...130).contains($0) ? $0 : nil }
+        let residual = kwh("residual").flatMap { energy -> Double? in
+            if let capacity, energy > capacity * 1.05 { return nil }
+            return energy
+        }
+        return (capacity, residual)
+    }
+
+    private static func programs(_ ac: JSON?) -> [Program] {
+        (ac?.objects("programs") ?? []).compactMap { p in
+            guard let start = ISODate.parsePT(p.str("start")) else { return nil }
+            let days = p.obj("occurence")?.strings("day") ?? []
+            return Program(slot: Int(p.num("slot") ?? 0), days: days, hour: start.hours, minute: start.minutes, enabled: p.bool("enabled") ?? false)
+        }
+    }
+
+    /// One number of a GeoJSON position ([lon, lat]).
+    private static func coordinate(_ coords: [Any]?, _ index: Int) -> Double? {
+        guard let coords, coords.count > index else { return nil }
+        return (coords[index] as? NSNumber)?.doubleValue
+    }
+
+    /// The lights of one kind ("fog", "turn") that are on, each as its direction and position.
+    private static func lightsOn(_ j: JSON, _ key: String) -> [String] {
+        (j.obj("lightingSystem")?.objects(key) ?? []).filter { $0.optString("status") == "On" }
+            .map { [$0.str("direction"), $0.str("position")].compactMap { $0 }.joined(separator: " ") }
     }
 
     public init(raw: JSON, batteryPct: Double?, rangeKm: Double?, plugged: Bool, chargingStatus: String?, chargingMode: String?,

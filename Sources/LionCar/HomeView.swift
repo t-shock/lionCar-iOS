@@ -16,6 +16,7 @@ struct HomeView: View {
                     if let st = model.status { notices(st); QuietCarNote(st: st) }
                     if !model.alerts.isEmpty { alertsCard }
                     if let st = model.status {
+                        // The user's order; some cards only apply to certain cars.
                         ForEach(model.visibleCards) { c in
                             switch c {
                             case .energy: energyCard(st)
@@ -27,16 +28,11 @@ struct HomeView: View {
                             }
                         }
                     } else if model.statusMissing {
-                        card { Text("\(model.brand.display) has no live status for this car. Trips and service still work.").foregroundStyle(.secondary) }
+                        Card { Text("\(model.brand.display) has no live status for this car. Trips and service still work.").foregroundStyle(.secondary) }
                     } else {
                         ProgressView().padding(40)
                     }
-                    if model.status != nil {
-                        NavigationLink { CarDataView() } label: {
-                            Label("All car data", systemImage: "list.bullet.rectangle").frame(maxWidth: .infinity).padding(12)
-                        }
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-                    }
+                    if model.status != nil { allDataLink }
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
@@ -49,26 +45,36 @@ struct HomeView: View {
                     Button { customizing = true } label: { Image(systemName: "slider.horizontal.3") }
                         .accessibilityLabel("Customize")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button { Task { await model.refresh() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
-                        if model.remoteReady {
-                            Button { Task { await model.wakeAndRefresh() } } label: {
-                                Label("Update now (wake the car)", systemImage: "antenna.radiowaves.left.and.right")
-                            }
-                        }
-                    } label: {
-                        if model.refreshing { ProgressView() } else { Image(systemName: "arrow.clockwise") }
-                    } primaryAction: {
-                        Task { await model.refresh() }
-                    }
-                    .disabled(model.refreshing)
-                }
+                ToolbarItem(placement: .topBarTrailing) { refreshMenu }
             }
         }
     }
 
     // MARK: Pieces
+
+    private var allDataLink: some View {
+        NavigationLink { CarDataView() } label: {
+            Label("All car data", systemImage: "list.bullet.rectangle").frame(maxWidth: .infinity).padding(12)
+        }
+        .cardBackground()
+    }
+
+    /// Tap refreshes; long-press opens the menu, which can also wake the car when remote control is set up.
+    private var refreshMenu: some View {
+        Menu {
+            Button { Task { await model.refresh() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+            if model.remoteReady {
+                Button { Task { await model.wakeAndRefresh() } } label: {
+                    Label("Update now (wake the car)", systemImage: "antenna.radiowaves.left.and.right")
+                }
+            }
+        } label: {
+            if model.refreshing { ProgressView() } else { Image(systemName: "arrow.clockwise") }
+        } primaryAction: {
+            Task { await model.refresh() }
+        }
+        .disabled(model.refreshing)
+    }
 
     private var header: some View {
         VStack(spacing: 6) {
@@ -115,7 +121,7 @@ struct HomeView: View {
     }
 
     /// The car's report is older than 15 minutes: worth offering to wake it.
-    private func stale(_ st: VehicleStatus) -> Bool { st.updatedAt.map { Date().timeIntervalSince($0) > 900 } ?? true }
+    private func stale(_ st: VehicleStatus) -> Bool { st.updatedAt.map { Date().timeIntervalSince($0) > 15 * 60 } ?? true }
 
     private func progressStrip(_ label: String) -> some View {
         HStack(spacing: 10) {
@@ -131,7 +137,7 @@ struct HomeView: View {
     }
 
     private var alertsCard: some View {
-        card {
+        Card {
             Label(model.alerts.count == 1 ? String(localized: "1 warning from the car") : String(localized: "\(model.alerts.count) warnings from the car"),
                   systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange).font(.headline)
@@ -141,9 +147,8 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private func energyCard(_ st: VehicleStatus) -> some View {
-        card {
+        Card {
             HStack(alignment: .center, spacing: 18) {
                 Gauge(value: (st.batteryPct ?? 0) / 100) {
                     EmptyView()
@@ -191,9 +196,8 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private func locksCard(_ st: VehicleStatus) -> some View {
-        card {
+        Card {
             if Caps.lockState(st) {
                 HStack {
                     Image(systemName: st.locked == false ? "lock.open.fill" : "lock.fill")
@@ -295,14 +299,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) { content() }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
     }
 }
 
@@ -364,7 +361,7 @@ struct QuietCarNote: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(14)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                .cardBackground()
             }
         }
         // Give a refresh or "Update now" a moment before saying anything.

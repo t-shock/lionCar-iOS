@@ -16,7 +16,7 @@ struct ChargingCard: View {
     let st: VehicleStatus
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Card(spacing: 12) {
             HStack {
                 Label(statusText, systemImage: st.isCharging ? "bolt.fill" : (st.plugged ? "powerplug.fill" : "powerplug"))
                     .font(.headline).foregroundStyle(st.isCharging ? Theme.accent : .primary)
@@ -64,9 +64,6 @@ struct ChargingCard: View {
             .font(.subheadline)
             UntestedNote()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var statusText: String {
@@ -98,7 +95,7 @@ struct ScheduledStartRow: View {
         HStack {
             Label("Scheduled start", systemImage: "clock.badge")
             Spacer()
-            Text(String(format: "%02d:%02d", hour, minute)).bold()
+            Text(clockTime(hour, minute)).bold()
             // Not while LionCar's charging times use the scheduled start.
             if model.remoteReady && !model.chargeSettings.windowOn {
                 Button("Turn off") { confirming = true }
@@ -119,7 +116,7 @@ struct ClimateCard: View {
     let st: VehicleStatus
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Card(spacing: 12) {
             Label(st.preconditioningOn ? "Pre-heating is on" : "Pre-heating is off", systemImage: st.preconditioningOn ? "fan.fill" : "fan")
                 .font(.headline).foregroundStyle(st.preconditioningOn ? Theme.accent : .primary)
             Text("Heats or cools the cabin for a limited time (about 10–30 minutes, depending on the car). Uses grid power when plugged in.")
@@ -144,15 +141,12 @@ struct ClimateCard: View {
             .font(.subheadline)
             UntestedNote()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var summary: String {
         let on = st.programs.filter(\.enabled)
         guard let p = on.first else { return L("None on") }
-        return "\(String(format: "%02d:%02d", p.hour, p.minute)) · \(Days.short(p.days))" + (on.count > 1 ? " +\(on.count - 1)" : "")
+        return "\(clockTime(p.hour, p.minute)) · \(Days.short(p.days))" + (on.count > 1 ? " +\(on.count - 1)" : "")
     }
 }
 
@@ -348,9 +342,7 @@ struct ChargeLogView: View {
         }
     }
 
-    private func stat(_ v: String, _ l: String) -> some View {
-        VStack(alignment: .leading) { Text(v).font(.title3.bold()); Text(l).font(.caption).foregroundStyle(.secondary) }
-    }
+    private func stat(_ value: String, _ caption: String) -> some View { StatFigure(value: value, caption: caption) }
 }
 
 struct SessionRow: View {
@@ -410,10 +402,8 @@ struct PlacesView: View {
             Section {
                 ForEach(model.chargePlaces.known) { k in
                     VStack(alignment: .leading) {
-                        TextField("Name", text: Binding(get: { k.name }, set: { v in model.updatePlaces { p in
-                            if let i = p.known.firstIndex(where: { $0.id == k.id }) { p.known[i].name = v } } }))
-                        price("Price per kWh", k.price) { v in model.updatePlaces { p in
-                            if let i = p.known.firstIndex(where: { $0.id == k.id }) { p.known[i].price = v } } }
+                        TextField("Name", text: Binding(get: { k.name }, set: { v in updateKnown(k.id) { $0.name = v } }))
+                        price("Price per kWh", k.price) { v in updateKnown(k.id) { $0.price = v } }
                     }
                 }
                 .onDelete { idx in model.updatePlaces { p in p.known.remove(atOffsets: idx) } }
@@ -443,6 +433,13 @@ struct PlacesView: View {
 
     private func price(_ title: LocalizedStringKey, _ value: Double, _ set: @escaping (Double) -> Void) -> some View {
         PriceField(title: title, value: value, symbol: model.currencySymbol, set: set)
+    }
+
+    /// Changes the known charger with this id, if it still exists.
+    private func updateKnown(_ id: String, _ change: (inout ChargePlace) -> Void) {
+        model.updatePlaces { p in
+            if let i = p.known.firstIndex(where: { $0.id == id }) { change(&p.known[i]) }
+        }
     }
 }
 

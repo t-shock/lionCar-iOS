@@ -119,6 +119,8 @@ public struct Vehicle: Equatable, Identifiable, Sendable {
         v.motorization = Self.metadata(j, "motorization") ?? motorization
         v.brand = branding.flatMap { Self.metadata($0, "brand") } ?? Self.metadata(j, "brand") ?? brand
         v.modelLabel = brandingLabel ?? label ?? modelLabel
+        // The plain label is kept as a second name when the branding label differs from it; with no label at all,
+        // the old one stays.
         v.legacyLabel = (brandingLabel == nil && label == nil) ? legacyLabel : (brandingLabel != nil && label != brandingLabel ? label : nil)
         return v
     }

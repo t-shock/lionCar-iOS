@@ -60,13 +60,16 @@ struct SignInView: View {
         .onAppear {
             brand = model.brand
             let list = StellantisConfig.countries(brand)
-            country = list.contains(model.country.uppercased()) ? model.country.uppercased() : (list.contains("GB") ? "GB" : list.first ?? "GB")
+            country = list.contains(model.country.uppercased()) ? model.country.uppercased() : Self.fallbackCountry(list)
         }
         .onChange(of: brand) { _, b in
             let list = StellantisConfig.countries(b)
-            if !list.contains(country) { country = list.contains("GB") ? "GB" : list.first ?? "GB" }
+            if !list.contains(country) { country = Self.fallbackCountry(list) }
         }
     }
+
+    /// When the current country isn't offered for the brand: the UK if it is, else the first one.
+    private static func fallbackCountry(_ list: [String]) -> String { list.contains("GB") ? "GB" : list.first ?? "GB" }
 
     private func signIn() async {
         model.setAccount(brand: brand, country: country)

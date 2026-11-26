@@ -33,6 +33,8 @@ public final class Otp {
     static let ok = 0, otpTwice = 10
     static let activateMode = "activate", otpMode = "otp", msMode = "ms"
     private static let base36 = Array("abcdefghijklmnopqrstuvwxyz0123456789")
+    /// The generator version the brand apps report to the OTP server.
+    private static let generatorVersion = "Generator-1.0/0.2.11"
 
     /// Fetches the OTP server's XML answer for a query; replaced in tests.
     typealias Fetch = ([(String, String)]) async throws -> String
@@ -66,33 +68,35 @@ public final class Otp {
 
     func kma(_ pin: String) -> String { String(Self.sha256Hex("\(pin);\(serial)").prefix(32)) }
 
+    /// The answers to the server's challenge (R0–R2) that go with every finalize request.
     func getR() -> [(String, String)] {
-        let iw = iwK0
-        let r2 = action == "synchro" ? "\(challenge);\(iw);\(codepin)" : "\(challenge);\(iw);"
-        return [("R0", Self.sha256Hex("\(challenge);\(iw);\(serial)")),
-                ("R1", Self.sha256Hex("\(challenge);\(iw);\(iwK1)")),
+        let r2 = action == "synchro" ? "\(challenge);\(iwK0);\(codepin)" : "\(challenge);\(iwK0);"
+        return [("R0", Self.sha256Hex("\(challenge);\(iwK0);\(serial)")),
+                ("R1", Self.sha256Hex("\(challenge);\(iwK0);\(iwK1)")),
                 ("R2", Self.sha256Hex(r2))]
     }
 
     private func request(_ params: [(String, String)], setup: Bool) async throws -> [String: String] {
         let raw = try await fetch(params)
-        guard let x = Self.parseXML(raw, root: setup ? "ActionSetup" : "ActionFinalize") else { throw OtpError(message: "Bad response from OTP server") }
-        return x
+        guard let fields = Self.parseXML(raw, root: setup ? "ActionSetup" : "ActionFinalize") else {
+            throw OtpError(message: "Bad response from OTP server")
+        }
+        return fields
     }
 
     /// Step 1 of activation, or step 1 of producing an OTP.
     @discardableResult
     func activationStart() async throws -> Bool {
-        var p: [(String, String)] = [("action", "ActionSetup"), ("mode", mode), ("id", iwid), ("lastsync", iwTsync),
-                                     ("version", "Generator-1.0/0.2.11"), ("macid", macid)]
-        if mode == Self.otpMode { p.append(("sid", iwsecid)) } else if mode == Self.activateMode { p.append(("code", smsCode)) }
-        let xml = try await request(p, setup: true)
+        var params: [(String, String)] = [("action", "ActionSetup"), ("mode", mode), ("id", iwid), ("lastsync", iwTsync),
+                                          ("version", Self.generatorVersion), ("macid", macid)]
+        if mode == Self.otpMode { params.append(("sid", iwsecid)) } else if mode == Self.activateMode { params.append(("code", smsCode)) }
+        let xml = try await request(params, setup: true)
         guard xml["err"] == "OK" else { throw OtpError(message: "OTP setup refused: \(xml["err"] ?? "?")", serverCode: xml["err"]) }
         if mode == Self.activateMode {
-            guard let kf = xml["Kfact"] else { throw OtpError(message: "Missing Kfact") }
-            guard let k = xml["Kiw"] else { throw OtpError(message: "Missing Kiw") }
-            kfact = kf
-            kiw = try Self.decodeOAEP(k, modulusHex: kf)
+            guard let newKfact = xml["Kfact"] else { throw OtpError(message: "Missing Kfact") }
+            guard let wrappedKiw = xml["Kiw"] else { throw OtpError(message: "Missing Kiw") }
+            kfact = newKfact
+            kiw = try Self.decodeOAEP(wrappedKiw, modulusHex: newKfact)
         } else if mode == Self.otpMode {
             challenge = xml["challenge"] ?? ""
         }
@@ -101,20 +105,20 @@ public final class Otp {
 
     /// Returns ok or otpTwice, or throws.
     func activationFinalize() async throws -> Int {
-        let r = getR()
-        var p: [(String, String)] = [("action", "ActionFinalize"), ("mode", mode), ("id", iwid), ("lastsync", iwTsync),
-                                     ("version", "Generator-1.0/0.2.11"), ("lang", "fr"), ("ack", ""), ("macid", macid)]
+        let challengeAnswers = getR()
+        var params: [(String, String)] = [("action", "ActionFinalize"), ("mode", mode), ("id", iwid), ("lastsync", iwTsync),
+                                          ("version", Self.generatorVersion), ("lang", "fr"), ("ack", ""), ("macid", macid)]
         if mode == Self.otpMode {
-            p += [("keytype", "0"), ("sid", iwsecid)]
+            params += [("keytype", "0"), ("sid", iwsecid)]
         } else if mode == Self.activateMode {
             guard let modulus = kiw else { throw OtpError(message: "Not initialised") }
             let kmaCrypt = try Self.oaepEncrypt(Self.hexToBytes(kma(codepin)), modulusHex: modulus, random: random).toHexString()
             let pinCrypt = try Self.oaepEncrypt(Array(codepin.utf8), modulusHex: modulus, random: random).toHexString()
-            p += [("serial", serial), ("code", smsCode), ("Kma", kmaCrypt), ("pin", pinCrypt),
-                  ("name", "Android SDK built for x86_64 / UNKNOWN")]
+            params += [("serial", serial), ("code", smsCode), ("Kma", kmaCrypt), ("pin", pinCrypt),
+                       ("name", "Android SDK built for x86_64 / UNKNOWN")]
         }
-        p += r
-        let xml = try await request(p, setup: false)
+        params += challengeAnswers
+        let xml = try await request(params, setup: false)
         guard xml["err"] == "OK" else { throw OtpError(message: "OTP error: \(xml["err"] ?? "?")", serverCode: xml["err"]) }
         try synchro(xml, key: kma(codepin))
 
@@ -124,42 +128,45 @@ public final class Otp {
             return xml["J"] != nil ? Self.otpTwice : Self.ok
         }
 
+        // Activation only: the server also asks for a secret of our own ("ms"), sent wrapped with its temporary key.
         guard let msN = xml["ms_n"], let msKey = xml["ms_key"] else { return Self.ok }
         if (Int(msN) ?? 0) > 1 { throw OtpError(message: "Unsupported ms_n=\(msN)") }
 
         challenge = xml["challenge"] ?? ""
         action = "synchro"
-        guard let kf = kfact else { throw OtpError(message: "Not initialised") }
-        let tempModulus = try Self.decodeOAEP(msKey, modulusHex: kf)
-        let rnd = random(16)
-        let kpubEncode = try Self.oaepEncrypt(rnd, modulusHex: tempModulus, random: random)
-        iwsecval = try Self.aesECB(rnd, key: Self.hexToBytes(kma(codepin)), encrypt: true).toHexString()
+        guard let kfactModulus = kfact else { throw OtpError(message: "Not initialised") }
+        let tempModulus = try Self.decodeOAEP(msKey, modulusHex: kfactModulus)
+        let secret = random(16)
+        let wrappedSecret = try Self.oaepEncrypt(secret, modulusHex: tempModulus, random: random)
+        iwsecval = try Self.aesECB(secret, key: Self.hexToBytes(kma(codepin)), encrypt: true).toHexString()
         iwsecid = xml["s_id"] ?? ""
 
-        var p2: [(String, String)] = [("action", "ActionFinalize"), ("mode", Self.msMode),
-                                      ("ms_id0", xml["ms_id"] ?? ""), ("ms_val0", kpubEncode.toHexString()), ("macid", macid),
-                                      ("id", iwid), ("lastsync", iwTsync), ("ms_n", "1")]
-        p2 += getR()
-        let xml2 = try await request(p2, setup: false)
-        try synchro(xml2, key: kma(codepin))
+        var msParams: [(String, String)] = [("action", "ActionFinalize"), ("mode", Self.msMode),
+                                            ("ms_id0", xml["ms_id"] ?? ""), ("ms_val0", wrappedSecret.toHexString()), ("macid", macid),
+                                            ("id", iwid), ("lastsync", iwTsync), ("ms_n", "1")]
+        msParams += getR()
+        let msXML = try await request(msParams, setup: false)
+        try synchro(msXML, key: kma(codepin))
         return Self.ok
     }
 
-    private func synchro(_ x: [String: String], key: String) throws {
-        let k = Self.hexToBytes(key)
-        if let id = x["id"], !id.isEmpty { iwid = id }
-        if let k0 = x["K0"], !k0.isEmpty { iwK0 = try Self.aesECB(Self.hexToBytes(k0), key: k, encrypt: false).toHexString() }
-        if let k1 = x["K1"], !k1.isEmpty { iwK1 = try Self.aesECB(Self.hexToBytes(k1), key: k, encrypt: false).toHexString() }
-        if let dk1 = x["dK1"], !dk1.isEmpty { iwK1 = String(Self.sha256Hex("\(iwK1);\(dk1)").prefix(32)) }
-        if let sn = x["s_n"], !sn.isEmpty { iwTsync = x["Tsync"] ?? iwTsync }
+    /// Takes the new keys and sync state from a finalize answer.
+    private func synchro(_ fields: [String: String], key: String) throws {
+        let keyBytes = Self.hexToBytes(key)
+        if let id = fields["id"], !id.isEmpty { iwid = id }
+        if let k0 = fields["K0"], !k0.isEmpty { iwK0 = try Self.aesECB(Self.hexToBytes(k0), key: keyBytes, encrypt: false).toHexString() }
+        if let k1 = fields["K1"], !k1.isEmpty { iwK1 = try Self.aesECB(Self.hexToBytes(k1), key: keyBytes, encrypt: false).toHexString() }
+        if let dk1 = fields["dK1"], !dk1.isEmpty { iwK1 = String(Self.sha256Hex("\(iwK1);\(dk1)").prefix(32)) }
+        if let sn = fields["s_n"], !sn.isEmpty { iwTsync = fields["Tsync"] ?? iwTsync }
     }
 
     func computeOTP() -> String {
-        let res = Array("\(iwK1):\(defi):\(iwsecval)".utf8).sha256()
-        func be(_ s: ArraySlice<UInt8>) -> UInt64 { s.reduce(0) { $0 << 8 | UInt64($1) } }
-        let a = be(res[0..<4]) & 0xfffffff
-        let b = be(res[4..<8]) & 1023
-        var n = a * 1024 + b
+        let hash = Array("\(iwK1):\(defi):\(iwsecval)".utf8).sha256()
+        func bigEndian(_ s: ArraySlice<UInt8>) -> UInt64 { s.reduce(0) { $0 << 8 | UInt64($1) } }
+        // 28 bits of the first word and 10 of the second, written in base 36 (least significant digit first).
+        let high = bigEndian(hash[0..<4]) & 0xfffffff
+        let low = bigEndian(hash[4..<8]) & 1023
+        var n = high * 1024 + low
         if n == 0 { return "a" }
         var out = ""
         while n > 0 { out.append(Self.base36[Int(n % 36)]); n /= 36 }
@@ -176,12 +183,13 @@ public final class Otp {
     public func nextCode() async throws -> String {
         mode = Self.otpMode
         guard try await activationStart() else { throw OtpError(message: "Can't start OTP") }
-        var res = try await activationFinalize()
-        if res == Self.otpTwice {
+        var result = try await activationFinalize()
+        // The server can ask for a second round before it hands out a code.
+        if result == Self.otpTwice {
             mode = Self.otpMode
             try await activationStart()
-            res = try await activationFinalize()
-            if res != Self.ok { throw OtpError(message: "Can't get OTP code") }
+            result = try await activationFinalize()
+            if result != Self.ok { throw OtpError(message: "Can't get OTP code") }
         }
         return computeOTP()
     }
@@ -222,6 +230,11 @@ public final class Otp {
     // MARK: Crypto helpers
 
     static let exponent = BigUInt(0x11)
+    /// SHA-256 output size, the OAEP hash length.
+    private static let hashLength = 32
+
+    /// The modulus size in bytes.
+    private static func byteLength(_ n: BigUInt) -> Int { (n.bitWidth - n.leadingZeroBitCount + 7) / 8 }
 
     static func secureRandom(_ n: Int) -> [UInt8] {
         var g = SystemRandomNumberGenerator()
@@ -272,8 +285,8 @@ public final class Otp {
     /// RSA-OAEP (SHA-256, MGF1-SHA-256, empty label) encryption with public exponent 0x11.
     static func oaepEncrypt(_ message: [UInt8], modulusHex: String, random: (Int) -> [UInt8] = secureRandom) throws -> [UInt8] {
         guard let n = BigUInt(modulusHex, radix: 16) else { throw OtpError(message: "Bad modulus") }
-        let k = (n.bitWidth - n.leadingZeroBitCount + 7) / 8
-        let hLen = 32
+        let k = byteLength(n)
+        let hLen = hashLength
         let psLen = k - message.count - 2 * hLen - 2
         guard psLen >= 0 else { throw OtpError(message: "Message too long") }
         let lHash = [UInt8]().sha256()
@@ -289,15 +302,15 @@ public final class Otp {
     /// The vendor's "decrypt with the public key" OAEP unwrap, block by block (128-byte blocks).
     static func decodeOAEP(_ encHex: String, modulusHex: String) throws -> String {
         guard let n = BigUInt(modulusHex, radix: 16) else { throw OtpError(message: "Bad modulus") }
-        let k = (n.bitWidth - n.leadingZeroBitCount + 7) / 8
-        let hLen = 32
+        let k = byteLength(n)
+        let hLen = hashLength
         let lHash = [UInt8]().sha256()
         let enc = hexToBytes(encHex)
         var out = ""
-        var off = 0
-        while off < enc.count {
-            let end = min(off + 128, enc.count)
-            let m = BigUInt(Data(enc[off..<end])).power(exponent, modulus: n)
+        var offset = 0
+        while offset < enc.count {
+            let end = min(offset + 128, enc.count)
+            let m = BigUInt(Data(enc[offset..<end])).power(exponent, modulus: n)
             let em = i2osp(m, k)
             guard em.count > hLen + 1 else { throw OtpError(message: "Incorrect decryption") }
             let maskedSeed = Array(em[1...hLen])
@@ -312,7 +325,7 @@ public final class Otp {
             }
             guard onePos >= 0 else { throw OtpError(message: "Incorrect decryption") }
             out += Array(db[(onePos + 1)...]).toHexString()
-            off = end
+            offset = end
         }
         return out
     }

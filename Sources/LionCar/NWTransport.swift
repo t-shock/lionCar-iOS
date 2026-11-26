@@ -15,8 +15,7 @@ final class NWTransport: MQTTTransport, @unchecked Sendable {
     func open(host: String, port: Int) async throws {
         let c = NWConnection(host: NWEndpoint.Host(host), port: NWEndpoint.Port(integerLiteral: UInt16(port)), using: .tls)
         connection = c
-        final class Once: @unchecked Sendable { var done = false; let lock = NSLock()
-            func take() -> Bool { lock.lock(); defer { lock.unlock() }; if done { return false }; done = true; return true } }
+        // The state handler can fire several times and races the timeout, but the continuation may resume only once.
         let once = Once()
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             c.stateUpdateHandler = { state in
@@ -59,5 +58,18 @@ final class NWTransport: MQTTTransport, @unchecked Sendable {
     func close() {
         connection?.cancel()
         connection = nil
+    }
+}
+
+/// True for the first caller of `take()` only, from any thread.
+private final class Once: @unchecked Sendable {
+    private var done = false
+    private let lock = NSLock()
+
+    func take() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if done { return false }
+        done = true
+        return true
     }
 }

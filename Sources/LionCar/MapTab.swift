@@ -116,17 +116,24 @@ struct MapTab: View {
         VStack(spacing: 4) {
             if model.placesLoading {
                 HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Asking OpenStreetMap…") }
-                    .font(.footnote.bold()).padding(.horizontal, 12).padding(.vertical, 6).background(.regularMaterial, in: Capsule())
+                    .font(.footnote.bold()).mapPill()
             } else if let e = model.placesError {
-                Text(e).font(.footnote.bold()).padding(.horizontal, 12).padding(.vertical, 6).background(.regularMaterial, in: Capsule())
+                Text(e).font(.footnote.bold()).mapPill()
             } else if !model.places.isEmpty {
                 Text(chargers ? String(localized: "\(visible.count) chargers") : String(localized: "\(visible.count) fuel stations"))
-                    .font(.footnote).padding(.horizontal, 12).padding(.vertical, 6).background(.regularMaterial, in: Capsule())
+                    .font(.footnote).mapPill()
             }
             Text(chargers ? "Chargers © OpenStreetMap contributors" : "Fuel stations © OpenStreetMap contributors")
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.bottom, 6)
+    }
+}
+
+/// A small status capsule floating over the map, readable on any map colours.
+private extension View {
+    func mapPill() -> some View {
+        padding(.horizontal, 12).padding(.vertical, 6).background(.regularMaterial, in: Capsule())
     }
 }
 

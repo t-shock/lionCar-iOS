@@ -39,11 +39,7 @@ public enum HTTP {
 
     /// "Peugeot error 503 (temporarily unavailable): <the server's own message>"
     public static func describeHTTPError(_ code: Int, body: String, host: String) -> String {
-        let who: String
-        if ["psa", "mpsa", "stellantis", "peugeot"].contains(where: host.contains) { who = "Peugeot" }
-        else if host.contains("met.no") { who = "MET weather" }
-        else if host.contains("nobil") { who = "NOBIL" }
-        else { who = host }
+        let who = serviceName(host: host)
         let meaning: String = switch code {
         case 400: "request rejected"
         case 401: "not signed in / session expired"
@@ -58,27 +54,44 @@ public enum HTTP {
         case 504: "gateway timeout"
         default: "error"
         }
+        // A server's own error page (HTML) says nothing useful.
         if code >= 500 && body.trimmingCharacters(in: .whitespaces).hasPrefix("<") { return "\(who) error \(code) (\(meaning))" }
-        var detail = ""
+        let detail: String
         if let j = JSONValue.parse(body) as? JSON {
-            var parts = [j.str("error_description"), j.str("message"),
-                         j.objects("errors").first.flatMap { e in e.str("message") ?? e.str("code") },
-                         j.str("error"), j.str("code").flatMap { $0 == String(code) ? nil : $0 }]
-                .compactMap { $0?.isEmpty == false ? $0 : nil }
-            var seen = Set<String>()
-            parts = parts.filter { seen.insert($0).inserted }
-            detail = parts.joined(separator: " · ")
+            detail = serverMessages(j, code: code)
         } else {
-            detail = String(body.replacingOccurrences(of: "<[^>]*>", with: " ", options: .regularExpression)
-                .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-                .trimmingCharacters(in: .whitespaces).prefix(160))
+            detail = shortText(body)
         }
         return "\(who) error \(code) (\(meaning))" + (detail.isEmpty ? "" : ": \(detail)")
     }
 
+    private static func serviceName(host: String) -> String {
+        if ["psa", "mpsa", "stellantis", "peugeot"].contains(where: host.contains) { return "Peugeot" }
+        if host.contains("met.no") { return "MET weather" }
+        if host.contains("nobil") { return "NOBIL" }
+        return host
+    }
+
+    /// The messages in a JSON error body, each once; the code only when it adds something to the HTTP status.
+    private static func serverMessages(_ j: JSON, code: Int) -> String {
+        let messages = [j.str("error_description"), j.str("message"),
+                        j.objects("errors").first.flatMap { e in e.str("message") ?? e.str("code") },
+                        j.str("error"), j.str("code").flatMap { $0 == String(code) ? nil : $0 }]
+            .compactMap { $0?.isEmpty == false ? $0 : nil }
+        var seen = Set<String>()
+        return messages.filter { seen.insert($0).inserted }.joined(separator: " · ")
+    }
+
+    /// A text or HTML body as one short line.
+    private static func shortText(_ body: String) -> String {
+        String(body.replacingOccurrences(of: "<[^>]*>", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces).prefix(160))
+    }
+
     /// Human text for any error from a network call.
     public static func describe(_ e: Error) -> String {
-        if let a = e as? APIError { return a.message }
+        if let apiError = e as? APIError { return apiError.message }
         if e is AuthExpiredError { return AuthExpiredError().errorDescription! }
         let ns = e as NSError
         if ns.domain == NSURLErrorDomain {

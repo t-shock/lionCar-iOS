@@ -91,15 +91,16 @@ struct TagsView: View {
                 HStack {
                     TextField("New tag (e.g. Work)", text: $newName)
                     Button("Add") {
-                        let n = newName.trimmingCharacters(in: .whitespaces)
-                        if !n.isEmpty { model.addTag(name: n); newName = "" }
+                        if !trimmedName.isEmpty { model.addTag(name: trimmedName); newName = "" }
                     }
-                    .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(trimmedName.isEmpty)
                 }
             }
         }
         .navigationTitle("Trip tags")
     }
+
+    private var trimmedName: String { newName.trimmingCharacters(in: .whitespaces) }
 }
 
 struct TagEditor: View {

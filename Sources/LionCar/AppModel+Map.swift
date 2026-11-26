@@ -54,6 +54,7 @@ extension AppModel {
 
     private struct PlacesCache: Codable { var kind: String; var lat: Double; var lon: Double; var time: Double; var items: [Charger] }
 
+    /// The saved list, if it is for the same kind of place, about the same spot (within a few km) and young enough.
     private func cachedPlaces(_ kind: OsmPlaces.Kind, _ lat: Double, _ lon: Double, maxAge: TimeInterval) -> [Charger]? {
         guard let url = placesCacheURL, let d = try? Data(contentsOf: url), let c = try? JSONDecoder().decode(PlacesCache.self, from: d),
               c.kind == kind.rawValue, abs(c.lat - lat) < 0.03, abs(c.lon - lon) < 0.05,
