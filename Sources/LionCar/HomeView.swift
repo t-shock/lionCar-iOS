@@ -208,7 +208,6 @@ struct HomeView: View {
                             .font(.footnote).foregroundStyle(st.openDoors.isEmpty ? Color.secondary : Color.orange)
                     }
                     Spacer()
-                    if st.alarmActive == true { Label("Alarm on", systemImage: "shield.lefthalf.filled").font(.caption).foregroundStyle(.secondary) }
                 }
             }
             RemoteCard()

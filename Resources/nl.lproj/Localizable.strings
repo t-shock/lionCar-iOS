@@ -55,8 +55,7 @@
 "Add" = "Toevoegen";
 "Add a charger where the car is now" = "Laadpunt toevoegen op de plek van de auto";
 "Address" = "Adres";
-"Alarm" = "Alarm";
-"Alarm on" = "Alarm aan";
+"Alarm (as reported by the car)" = "Alarm (zoals gemeld door de auto)";
 "All" = "Alle";
 "All car data" = "Alle autogegevens";
 "All doors closed" = "Alle deuren dicht";

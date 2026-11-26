@@ -38,7 +38,7 @@ struct CarDataView: View {
                 Section("Car") {
                     value("Locked", st.locked.map { $0 ? String(localized: "Yes") : String(localized: "No") })
                     LabeledContent("Open", value: st.openDoors.isEmpty ? String(localized: "Nothing") : st.openDoors.joined(separator: ", "))
-                    value("Alarm", st.alarmActive.map { $0 ? String(localized: "On") : String(localized: "Off") })
+                    value("Alarm (as reported by the car)", st.alarmActive.map { $0 ? String(localized: "On") : String(localized: "Off") })
                     value("Ignition", st.ignition)
                     value("Engine", st.powertrainStatus)
                     value("Coolant temperature", st.coolantTempC.map { "\(Int($0)) °C" })

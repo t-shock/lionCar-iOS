@@ -56,6 +56,7 @@ public struct VehicleStatus: @unchecked Sendable {
     public var smallBatteryHealthPct: Double?
     /// Lifetime fuel counter (raw, undocumented unit) — used to calibrate trip fuel figures.
     public var fuelTotalRaw: Double?
+    /// alarm.status.activation as the car reports it. Not proof of an alarm system: cars without one report "Active" too.
     public var alarmActive: Bool?
     // More of what the car reports
     public var coolantTempC: Double?

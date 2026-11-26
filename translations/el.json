@@ -50,7 +50,6 @@
  "Battery voltage (as reported)": "Τάση μπαταρίας (όπως αναφέρεται)",
  "Locked": "Κλειδωμένο",
  "Open": "Ανοιχτά",
- "Alarm": "Συναγερμός",
  "Ignition": "Ανάφλεξη",
  "Engine": "Κινητήρας",
  "Coolant temperature": "Θερμοκρασία ψυκτικού",
@@ -85,7 +84,6 @@
  "Not plugged in": "Εκτός πρίζας",
  "All doors closed": "Όλες οι πόρτες κλειστές",
  "Open:": "Ανοιχτά:",
- "Alarm on": "Συναγερμός ενεργός",
  "driver's door": "πόρτα οδηγού",
  "passenger door": "πόρτα συνοδηγού",
  "rear left": "πίσω αριστερή",
@@ -424,5 +422,6 @@
  "Red": "Κόκκινο",
  "Orange": "Πορτοκαλί",
  "Green": "Πράσινο",
- "Graphite": "Γραφίτης"
+ "Graphite": "Γραφίτης",
+ "Alarm (as reported by the car)": "Συναγερμός (όπως αναφέρεται από το αυτοκίνητο)"
 }

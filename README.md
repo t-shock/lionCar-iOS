@@ -40,7 +40,7 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
 ### Car tab
 - Fuel or battery level with range; for plug-in hybrids both
 - Electric and plug-in hybrid cars also get a **Charging** and a **Pre-heating** card (⚠️ untested, see below)
-- **Locked / unlocked**, which doors, boot or windows are open, alarm on or off
+- **Locked / unlocked**, which doors, boot or windows are open
 - When the car last reported, with **Update now**: wakes the car so it sends a fresh report (the server otherwise only has
   the last report, which can be hours old when the car is parked)
 - A note when the car itself **hasn't sent new data for hours**, with what usually helps (a short drive, or locking and
