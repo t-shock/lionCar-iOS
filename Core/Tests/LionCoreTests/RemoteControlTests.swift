@@ -12,6 +12,8 @@ final class FakeBroker: MQTTTransport, @unchecked Sendable {
     var connack: UInt8 = 0
     /// Never answers the login (a broker that hangs).
     var silent = false
+    /// Sending a command fails (the connection broke).
+    var failPublish = false
     /// Codes to answer the n-th command with (each element = one answer message), e.g. [["900", "903"], ["0"]].
     var script: [[String]] = []
     var respData: JSON?
@@ -28,6 +30,7 @@ final class FakeBroker: MQTTTransport, @unchecked Sendable {
         let first = data.first ?? 0
         if first == 0x10 { if !silent { push(Data([0x20, 0x02, 0x00, connack])) }; return }
         if first == 0x82 { push(Data([0x90, 0x03, data[2], data[3], suback])); return }
+        if first == 0x30 && failPublish { throw MQTTError(code: 0, message: "broken pipe") }
         guard first == 0x30, case .publish(let topic, let payload)? = MQTTPacket.decode(&buf),
               let j = JSONValue.parse(payload) as? JSON else { return }
         lock.lock(); published.append((topic, j)); let n = published.count; lock.unlock()
@@ -37,6 +40,14 @@ final class FakeBroker: MQTTTransport, @unchecked Sendable {
             if let respData, !["900", "901", "902", "903"].contains(c) { answer["resp_data"] = respData }
             push(MQTTPacket.publish(topic: "psa/RemoteServices/to/cid/C1/VehCharge", payload: JSONValue.data(answer)))
         }
+    }
+
+    /// Sends an answer for the last command now, as the car would much later.
+    func answerLast(_ code: String, reason: String? = nil) {
+        lock.lock(); let id = published.last?.payload.optString("correlation_id") ?? ""; lock.unlock()
+        var answer: JSON = ["correlation_id": id, "return_code": code]
+        if let reason { answer["reason"] = reason }
+        push(MQTTPacket.publish(topic: "psa/RemoteServices/to/cid/C1/Doors", payload: JSONValue.data(answer)))
     }
 
     func receive() async throws -> Data {
@@ -182,4 +193,57 @@ extension RemoteControl {
     var b = Data([0x20, 0x02, 0x00, 0x00, 0x90, 0x03, 0x00, 0x01, 0x00])
     #expect(MQTTPacket.decode(&b) == .connack(returnCode: 0))
     #expect(MQTTPacket.decode(&b) == .suback(packetID: 1, codes: [0]))
+}
+
+// Every way a command can end must leave nothing kept for it.
+
+@Test func lateAnswerAfterGivingUpIsNotKept() async throws {
+    let broker = FakeBroker()
+    broker.script = [["900"], ["900"]]                       // no final answer in time
+    let rc = await setUp(broker)
+    guard case .failed = await rc.lock(true) else { Issue.record("should fail"); return }
+    broker.answerLast("400", reason: "[too late]")           // the car answers after all
+    try await Task.sleep(nanoseconds: 200_000_000)
+    #expect(await rc.trackedCommands == 0)
+}
+
+@Test func lateFinalAnswerAfterDeliveredIsPassedOnAndForgotten() async throws {
+    let broker = FakeBroker()
+    broker.script = [["900", "903"]]
+    let rc = await setUp(broker)
+    final class Got: @unchecked Sendable { var r: CommandResult? }
+    let got = Got()
+    #expect(await rc.lock(true, Tracker(onFinal: { got.r = $0 })) == .delivered)
+    broker.answerLast("400", reason: "[door open]")
+    try await Task.sleep(nanoseconds: 200_000_000)
+    guard case .failed(let m)? = got.r else { Issue.record("the late answer should reach onFinal"); return }
+    #expect(m.contains("door open"))
+    #expect(await rc.trackedCommands == 0)
+}
+
+@Test func deliveredCommandIsForgottenAfterTheLateAnswerWindow() async throws {
+    let broker = FakeBroker()
+    broker.script = [["903"]]
+    let rc = await setUp(broker)                               // timeoutScale 0.01: the 3-minute window is 1.8 s
+    #expect(await rc.lock(true) == .delivered)
+    #expect(await rc.trackedCommands == 1)                     // kept for a late final answer
+    try await Task.sleep(nanoseconds: 2_500_000_000)
+    #expect(await rc.trackedCommands == 0)
+}
+
+@Test func duplicateFinalAnswerIsNotKept() async throws {
+    let broker = FakeBroker()
+    broker.script = [["0", "0"]]
+    let rc = await setUp(broker)
+    #expect(await rc.lock(false) == .success)
+    try await Task.sleep(nanoseconds: 200_000_000)
+    #expect(await rc.trackedCommands == 0)
+}
+
+@Test func failedSendLeavesNothingBehind() async {
+    let broker = FakeBroker()
+    broker.failPublish = true
+    let rc = await setUp(broker)
+    guard case .failed = await rc.lock(true) else { Issue.record("should fail"); return }
+    #expect(await rc.trackedCommands == 0)
 }

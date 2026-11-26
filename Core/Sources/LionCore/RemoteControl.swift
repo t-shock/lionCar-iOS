@@ -223,7 +223,8 @@ public actor RemoteControl {
         }
         let reason = data.optString("reason")
         let finalCode = code == "400" && reason.contains("no.matching.service.key") ? "not_compatible" : code
-        if finalCode != "0" && finalCode != "1" {
+        // Only for a command still being followed: a late answer for a forgotten one is just logged above.
+        if finalCode != "0" && finalCode != "1", services[id] != nil {
             if let carReason = Self.describeRespData(services[id], data.obj("resp_data")) { reasons[id] = carReason }
             let brandReason = reason.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
             if !brandReason.isEmpty { brandReasons[id] = brandReason }
@@ -231,8 +232,8 @@ public actor RemoteControl {
         if waiters[id] != nil || expected.contains(id) { complete(id, finalCode) }
         else if let onFinal = finals.removeValue(forKey: id) {
             // send() has already returned "delivered": this is the car's late final answer.
-            onFinal(mapCode(finalCode, reasons.removeValue(forKey: id), brandReasons.removeValue(forKey: id)))
-            services.removeValue(forKey: id)
+            onFinal(mapCode(finalCode, reasons[id], brandReasons[id]))
+            forget(id)
         }
     }
 
@@ -282,6 +283,7 @@ public actor RemoteControl {
                 tracker.onProgress("Sent — waiting for the car…")
                 let code = await wait(id, seconds: Self.answerWait * timeoutScale)
                 expected.remove(id)
+                earlyAnswers.removeValue(forKey: id)   // a second answer that came in just now
                 progress.removeValue(forKey: id)
                 if code == "903" {
                     // Delivered: stop making the user wait. The final answer (if any) goes to tracker.onFinal.
@@ -292,9 +294,8 @@ public actor RemoteControl {
                     }
                     return .delivered
                 }
-                finals.removeValue(forKey: id)
-                services.removeValue(forKey: id)
-                let reason = reasons.removeValue(forKey: id), brandReason = brandReasons.removeValue(forKey: id)
+                let reason = reasons[id], brandReason = brandReasons[id]
+                forget(id)
                 if code == "300" && attempt == 1 {
                     // No answer in time — often the car was waking up or briefly out of coverage. That woke it; try once more.
                     tracker.onProgress("Car didn't answer — trying again…")
@@ -332,8 +333,23 @@ public actor RemoteControl {
     }
 
     /// Stops passing on a delivered command's final answer.
-    private func forgetCommand(_ id: String) {
-        finals.removeValue(forKey: id); services.removeValue(forKey: id); reasons.removeValue(forKey: id)
+    private func forgetCommand(_ id: String) { forget(id) }
+
+    /// Drops everything kept for one command. Every way a command can end comes through here, so nothing is left behind.
+    private func forget(_ id: String) {
+        expected.remove(id)
+        earlyAnswers.removeValue(forKey: id)
+        progress.removeValue(forKey: id)
+        finals.removeValue(forKey: id)
+        services.removeValue(forKey: id)
+        reasons.removeValue(forKey: id)
+        brandReasons.removeValue(forKey: id)
+    }
+
+    /// How many commands still have something kept for them (for tests).
+    var trackedCommands: Int {
+        Set(expected).union(earlyAnswers.keys).union(progress.keys).union(finals.keys).union(services.keys)
+            .union(reasons.keys).union(brandReasons.keys).union(waiters.keys).count
     }
 
     /// Builds and publishes one request; listeners are registered before the message goes out.
@@ -354,7 +370,12 @@ public actor RemoteControl {
         finals[id] = tracker.onFinal
         services[id] = service
         addLog("\(service) ← sent \(String(decoding: JSONValue.data(params), as: UTF8.self))")
-        try await c.publish("psa/RemoteServices/from/cid/\(customer)\(service)", payload: JSONValue.data(payload))
+        do {
+            try await c.publish("psa/RemoteServices/from/cid/\(customer)\(service)", payload: JSONValue.data(payload))
+        } catch {
+            forget(id)
+            throw error
+        }
         return id
     }
 
