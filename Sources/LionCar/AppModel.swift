@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 import UIKit
 import Observation
 import LocalAuthentication
@@ -65,6 +66,12 @@ final class AppModel {
     var activeSession: ChargeSession?
     var chargePlaces = PlacesConfig()
     var chargeSettings = AppModel.loadChargeSettings() { didSet { saveChargeSettings() } }
+    // Map (see AppModel+Map.swift)
+    var places: [Charger] = []
+    var placesLoading = false
+    var placesError: String?
+    var placesCenter: CLLocationCoordinate2D?
+
     var targetNotify: Bool = UserDefaults.standard.object(forKey: "targetNotify") as? Bool ?? true {
         didSet { defaults.set(targetNotify, forKey: "targetNotify") }
     }

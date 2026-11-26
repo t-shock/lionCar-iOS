@@ -4,9 +4,12 @@ import glob, json, os
 
 def esc(s): return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
 
-INFO = {"NSFaceIDUsageDescription": "LionCar asks for Face ID before it unlocks your car or sounds its horn."}
-INFO_EL = {"NSFaceIDUsageDescription": "Το LionCar ζητά Face ID πριν ξεκλειδώσει το αυτοκίνητό σας ή πατήσει την κόρνα."}
-INFO_NL = {"NSFaceIDUsageDescription": "LionCar vraagt om Face ID voordat het je auto ontgrendelt of de claxon laat klinken."}
+INFO = {"NSFaceIDUsageDescription": "LionCar asks for Face ID before it unlocks your car or sounds its horn.",
+        "NSLocationWhenInUseUsageDescription": "LionCar shows where you are on the map, to find chargers or fuel stations near you. To search, only the map area's coordinates are sent to OpenStreetMap's public servers — nothing about you or your car."}
+INFO_EL = {"NSFaceIDUsageDescription": "Το LionCar ζητά Face ID πριν ξεκλειδώσει το αυτοκίνητό σας ή πατήσει την κόρνα.",
+           "NSLocationWhenInUseUsageDescription": "Το LionCar δείχνει πού βρίσκεστε στον χάρτη, για να βρείτε φορτιστές ή πρατήρια καυσίμων κοντά σας. Για την αναζήτηση στέλνονται μόνο οι συντεταγμένες της περιοχής του χάρτη στους δημόσιους διακομιστές του OpenStreetMap — τίποτα για εσάς ή το αυτοκίνητό σας."}
+INFO_NL = {"NSFaceIDUsageDescription": "LionCar vraagt om Face ID voordat het je auto ontgrendelt of de claxon laat klinken.",
+           "NSLocationWhenInUseUsageDescription": "LionCar toont waar je bent op de kaart, om laadpunten of tankstations bij jou in de buurt te vinden. Voor het zoeken worden alleen de coördinaten van het kaartgebied naar de openbare servers van OpenStreetMap gestuurd — niets over jou of je auto."}
 
 os.makedirs("Resources/en.lproj", exist_ok=True)
 open("Resources/en.lproj/Localizable.strings", "w").write("/* English is the development language: keys are the English texts. */\n")

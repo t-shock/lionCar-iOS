@@ -16,6 +16,8 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>LionCar shows where you are on the map, to find chargers or fuel stations near you. To search, only the map area's coordinates are sent to OpenStreetMap's public servers — nothing about you or your car.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>LionCar asks for Face ID before it unlocks your car or sounds its horn.</string>
     <key>UIBackgroundModes</key>

@@ -64,6 +64,7 @@ struct MainTabs: View {
         TabView {
             HomeView().tabItem { Label("Car", systemImage: "car.fill") }
             TripsView().tabItem { Label("Trips", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+            MapTab().tabItem { Label("Map", systemImage: "map") }
             StatsView().tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
             SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }
         }

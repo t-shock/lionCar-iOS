@@ -37,8 +37,10 @@ SOFTWARE.
 ```
 
 ## psa_car_controller — GPL-3.0
-The one-time-password generator for remote commands (coming to LionCar) is a port of the OTP code in
+The one-time-password generator for remote commands (`Core/Sources/LionCore/Otp.swift`) is a port of the OTP code in
 [psa_car_controller](https://github.com/flobz/psa_car_controller) by Florian Bezannier (GPL-3.0), via LionFlow.
 
 ## Data and services
 - Maps: Apple Maps (MapKit).
+- Chargers and fuel stations: © OpenStreetMap contributors, available under the Open Database License (ODbL), fetched
+  through the public Overpass API servers (overpass-api.de, private.coffee, kumi.systems, maps.mail.ru).

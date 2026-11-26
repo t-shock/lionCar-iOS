@@ -1,1 +1,2 @@
 "NSFaceIDUsageDescription" = "LionCar vraagt om Face ID voordat het je auto ontgrendelt of de claxon laat klinken.";
+"NSLocationWhenInUseUsageDescription" = "LionCar toont waar je bent op de kaart, om laadpunten of tankstations bij jou in de buurt te vinden. Voor het zoeken worden alleen de coördinaten van het kaartgebied naar de openbare servers van OpenStreetMap gestuurd — niets over jou of je auto.";

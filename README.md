@@ -19,6 +19,7 @@ and checked only with automated tests and made-up car data.
 | Trips | ✅ | on a fuel-powered car |
 | Remote control setup (SMS + security code) | ✅ | |
 | Stats, fill-ups, fuel cost, tags, CSV, all car data | ⚠️ not confirmed yet | built from the same data as the trips; tested with made-up data |
+| Map with chargers / fuel stations | ⚠️ not confirmed yet | the OpenStreetMap search was tested live (Paris) |
 | Lock, unlock, lights, horn, **Update now** | ⚠️ not confirmed yet | the commands go out like LionFlow's; first real-car reports pending |
 | Notifications | ⚠️ not confirmed yet | timing depends on iOS |
 | **Everything for electric and plug-in hybrid cars** (incl. scheduled start) | ❌ **not tested** | no such car was available — see below |
@@ -74,6 +75,16 @@ the iPhone's **Keychain** before it does anything else, and never runs two renew
   set it yourself)
 - Records: longest trip, longest time at the wheel, most in one day, most economical and thirstiest trip
 - Since new: odometer, average consumption, fuel used and its cost
+
+### Map
+- **Chargers** for electric and plug-in hybrid cars, **fuel stations** for petrol, diesel and mild-hybrid cars — from
+  OpenStreetMap, free and without an account or key
+- You and your car on Apple Maps, 2D or 3D; "All" or "Fast 50 kW+" chargers; **Search this area** after moving the map
+- Tap a place for its power, number of points, plug types (CCS, Type 2, CHAdeMO…), operator, address, opening hours, the
+  distance from you and from the car, and driving directions
+- The search asks the free public Overpass servers, which are often busy: LionCar checks them first and takes the first
+  good answer (and still tries servers whose status page doesn't answer). Results are kept for 6 hours, and older saved
+  ones are shown while it searches. OpenStreetMap is made by volunteers, so power, plugs and prices can be missing
 
 ### Electric and plug-in hybrid cars — ⚠️ untested on a real car
 > **⚠️ None of this has been tried on a real electric or plug-in hybrid car yet.** It is ported from LionFlow, where it
@@ -157,7 +168,8 @@ comes from LionFlow's own translation.
 | Monthly stats, fill-ups, records, average since new | — | ✅ |
 | Own service history | ✅ | not yet |
 | Route recording via the car's Bluetooth | ✅ | — (iOS can't reliably detect it in the background) |
-| Map | ✅ 2D/3D with chargers (OpenStreetMap / NOBIL) | car position (Apple Maps) |
+| Map with chargers | ✅ 2D/3D, OpenStreetMap or NOBIL (with a key) | ✅ 2D/3D on Apple Maps, OpenStreetMap; plug types and opening hours; fuel stations for fuel cars |
+| NOBIL charger data (Nordic countries, needs a key) | ✅ | — not ported (needs a NOBIL API key in the build) |
 | EV trip planner with charging stops | ✅ | not yet |
 | Weather and forecast | ✅ | not yet |
 | Notifications | ✅ | ✅ (timing decided by iOS) |
@@ -253,8 +265,11 @@ That's all. A calendar reminder every 6 days helps.
 
 ## Privacy and security
 
-- LionCar talks only to the brand's servers (sign-in, car data, remote commands) and to Apple's map services (the maps,
-  and street names for the charging log). There is no LionCar server and nothing is collected.
+- LionCar talks only to the brand's servers (sign-in, car data, remote commands), to Apple's map services (the maps,
+  and street names for the charging log), and — when you open the Map tab — to the public OpenStreetMap Overpass
+  servers. There is no LionCar server and nothing is collected.
+- The Map tab asks for your location, to show where you are. To find chargers or fuel stations, only the map area's
+  coordinates are sent to the Overpass servers (which can be your own area); nothing about you, your account or your car.
 - Sign-in tokens, the remote-control state and your security code are kept in the iPhone's **Keychain**, only on this
   device (not synced to iCloud). Car data, trips and settings stay in the app.
 - Your password is only ever typed on the brand's own sign-in page; LionCar never sees it.

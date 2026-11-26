@@ -56,7 +56,9 @@ EXTRA = ["48 V mild hybrid", "Plug-in hybrid", "Hybrid (type unknown)", "Electri
          "Set home to where the car is now", "Move home to where the car is now",
          # scheduled start and the demo car choice (texts chosen in code)
          "Turn off", "Turn off scheduled start", "Turn off scheduled start?", "Turn off scheduled start? Charging starts now.",
-         "Battery, charging and pre-heating", "Battery for short trips, fuel for long ones", "Fuel level, fuel cost and statistics"]
+         "Battery, charging and pre-heating", "Battery for short trips, fuel for long ones", "Fuel level, fuel cost and statistics",
+         # map (titles chosen in code)
+         "Chargers", "Fuel stations", "Chargers © OpenStreetMap contributors", "Fuel stations © OpenStreetMap contributors"]
 keys = {k: "extra" for k in EXTRA}
 for root, _, files in os.walk(sys.argv[1]):
     for f in sorted(files):
