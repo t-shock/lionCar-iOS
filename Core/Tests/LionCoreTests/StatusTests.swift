@@ -193,3 +193,16 @@ private func status(_ energies: JSON...) -> JSON { ["energies": energies] }
     let api = StellantisAPI(store: MemoryStore(), brand: .peugeot, country: "GR")
     await #expect(throws: AuthExpiredError.self) { _ = try await api.status(Vehicle(id: "v", vin: "x", motorization: "", brand: "")) }
 }
+
+@Test func commandHoldEndsOnANewerReportOrAfterFiveMinutes() {
+    let sent = Date(timeIntervalSince1970: 1_000_000)
+    // An older report (from before the command) keeps the hold
+    #expect(!CommandHold.isOver(since: sent, reportedAt: sent.addingTimeInterval(-600), now: sent.addingTimeInterval(60)))
+    // A newer report ends it
+    #expect(CommandHold.isOver(since: sent, reportedAt: sent.addingTimeInterval(30), now: sent.addingTimeInterval(60)))
+    // After 5 minutes it ends in any case…
+    #expect(CommandHold.isOver(since: sent, reportedAt: sent.addingTimeInterval(-600), now: sent.addingTimeInterval(301)))
+    // …also when the report has no time (this used to keep the hold until the app was restarted)
+    #expect(!CommandHold.isOver(since: sent, reportedAt: nil, now: sent.addingTimeInterval(60)))
+    #expect(CommandHold.isOver(since: sent, reportedAt: nil, now: sent.addingTimeInterval(301)))
+}

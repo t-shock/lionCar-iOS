@@ -362,11 +362,9 @@ final class AppModel {
         reparseTrips()
     }
 
-    /// A held value ends once the car reports something newer than the command, or after 5 minutes.
-    /// A report without a time doesn't end it.
+    /// A held value ends once the car reports something newer than the command, or after 5 minutes (see CommandHold).
     private static func holdIsOver(_ hold: (value: Bool, since: Date), reportedAt: Date?) -> Bool {
-        guard let at = reportedAt else { return false }
-        return at > hold.since || Date().timeIntervalSince(hold.since) > 300
+        CommandHold.isOver(since: hold.since, reportedAt: reportedAt)
     }
 
     func reparseTrips() {
