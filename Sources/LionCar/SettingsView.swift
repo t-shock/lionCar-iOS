@@ -51,6 +51,18 @@ struct SettingsView: View {
                 } footer: {
                     Text("Shows a made-up electric car, plug-in hybrid or petrol / diesel car, to see every screen. Nothing is sent to a car; your account and remote-control setup stay as they are.")
                 }
+                Section("Appearance") {
+                    Picker("Accent colour", selection: Binding(get: { model.accent }, set: { model.accent = $0 })) {
+                        ForEach(AccentChoice.allCases) { c in
+                            HStack {
+                                Image(systemName: "circle.fill").foregroundStyle(c.color)
+                                Text(c.title)
+                            }
+                            .tag(c)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
                 Section("About") {
                     LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")
                     Text("LionCar is a free, open-source (GPL-3.0) iPhone port of LionFlow by thocubeat. It is not made, endorsed or supported by Stellantis or its brands. Sign-in and API flow from homeassistant-stellantis-vehicles (MIT); the remote-control code generator from psa_car_controller (GPL-3.0).")

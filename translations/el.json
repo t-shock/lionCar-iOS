@@ -412,5 +412,17 @@
  "Chargers": "Φορτιστές",
  "Fuel stations": "Πρατήρια καυσίμων",
  "Chargers © OpenStreetMap contributors": "Φορτιστές © συντελεστές του OpenStreetMap",
- "Fuel stations © OpenStreetMap contributors": "Πρατήρια καυσίμων © συντελεστές του OpenStreetMap"
+ "Fuel stations © OpenStreetMap contributors": "Πρατήρια καυσίμων © συντελεστές του OpenStreetMap",
+ "Appearance": "Εμφάνιση",
+ "Accent colour": "Χρώμα έμφασης",
+ "Teal": "Πετρόλ",
+ "Icon teal": "Πετρόλ εικονιδίου",
+ "Blue": "Μπλε",
+ "Indigo": "Λουλακί",
+ "Purple": "Μωβ",
+ "Pink": "Ροζ",
+ "Red": "Κόκκινο",
+ "Orange": "Πορτοκαλί",
+ "Green": "Πράσινο",
+ "Graphite": "Γραφίτης"
 }

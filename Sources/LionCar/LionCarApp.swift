@@ -13,7 +13,9 @@ struct LionCarApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
-                .tint(Theme.accent)
+                .tint(model.accent.color)
+                // Views read Theme.accent directly: redraw them all when the colour changes.
+                .id(model.accent)
         }
         // iOS wakes the app now and then to check the car (it decides how often).
         .backgroundTask(.appRefresh(AppModel.refreshTaskID)) { await model.backgroundRefresh() }
@@ -75,7 +77,47 @@ struct MainTabs: View {
 }
 
 enum Theme {
-    static let accent = Color(red: 0.04, green: 0.48, blue: 0.46)
+    /// The colour of buttons, tinted glass, gauges and highlights: the one chosen in Settings › Appearance.
+    static var accent: Color { AccentChoice.current.color }
+}
+
+/// The accent colours to choose from. The stored value is the case name, so keep those as they are.
+enum AccentChoice: String, CaseIterable, Identifiable {
+    case teal, iconTeal, blue, indigo, purple, pink, red, orange, green, graphite
+    var id: String { rawValue }
+
+    static let key = "accentColour"
+    static var current: AccentChoice { AccentChoice(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .teal }
+
+    var color: Color {
+        switch self {
+        case .teal: Color(red: 0.04, green: 0.48, blue: 0.46)       // LionCar's original
+        case .iconTeal: Color(red: 0.0, green: 0.62, blue: 0.68)    // the app icon's teal
+        case .blue: .blue
+        case .indigo: .indigo
+        case .purple: .purple
+        case .pink: .pink
+        case .red: .red
+        case .orange: .orange
+        case .green: .green
+        case .graphite: .gray
+        }
+    }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .teal: "Teal"
+        case .iconTeal: "Icon teal"
+        case .blue: "Blue"
+        case .indigo: "Indigo"
+        case .purple: "Purple"
+        case .pink: "Pink"
+        case .red: "Red"
+        case .orange: "Orange"
+        case .green: "Green"
+        case .graphite: "Graphite"
+        }
+    }
 }
 
 /// Looks up a text that is only known at run time (car type, progress from the core, …) in the app's translations.

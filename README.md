@@ -135,6 +135,8 @@ a warning can come late.
 - On iOS 26 and later, Apple's **Liquid Glass**: glass buttons (Lock / Unlock, Charge now…), glass controls floating over
   the map, a toast on glass, a tab bar that shrinks while you scroll, and rounder cards. Content stays solid, as Apple
   recommends; older iOS versions keep the previous look
+- **Accent colour** of your choice (Settings › Appearance): LionCar's teal, the icon's teal, blue, indigo, purple, pink,
+  red, orange, green or graphite
 
 ### Languages
 English, Greek and Dutch (follows the iPhone, or choose under iPhone Settings › LionCar › Language). Much of the Dutch

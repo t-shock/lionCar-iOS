@@ -105,6 +105,13 @@ final class AppModel {
         didSet { defaults.set(targetNotify, forKey: "targetNotify") }
     }
 
+    // MARK: Appearance
+
+    /// Settings › Appearance › Accent colour.
+    var accent: AccentChoice = AccentChoice.current {
+        didSet { defaults.set(accent.rawValue, forKey: AccentChoice.key) }
+    }
+
     // MARK: Map (see AppModel+Map.swift)
 
     var places: [Charger] = []

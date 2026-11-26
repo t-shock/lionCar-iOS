@@ -48,6 +48,7 @@
 "A tag with a place is given to every trip that starts or ends within its radius. You can always change a trip's tag by hand." = "Een label met een plek krijgt elke rit die binnen de straal begint of eindigt. Je kunt het label van een rit altijd met de hand wijzigen.";
 "About" = "Over";
 "About %lld %% at %@" = "Ongeveer %lld %% om %@";
+"Accent colour" = "Accentkleur";
 "Account" = "Account";
 "Activate" = "Activeren";
 "Activation failed — %@" = "Activeren mislukt — %@";
@@ -60,6 +61,7 @@
 "All car data" = "Alle autogegevens";
 "All doors closed" = "Alle deuren dicht";
 "All trips" = "Alle ritten";
+"Appearance" = "Weergave";
 "Asking OpenStreetMap…" = "OpenStreetMap raadplegen…";
 "Automatic" = "Automatisch";
 "Average consumption" = "Gemiddeld verbruik";
@@ -74,6 +76,7 @@
 "Battery is low" = "Accu is bijna leeg";
 "Battery voltage (as reported)" = "Accuspanning (zoals gemeld)";
 "Battery, charging and pre-heating" = "Accu, laden en voorverwarmen";
+"Blue" = "Blauw";
 "Brand" = "Merk";
 "By tag" = "Per label";
 "Cancel" = "Annuleren";
@@ -182,12 +185,16 @@
 "Full charge for a trip" = "Volledig laden voor een rit";
 "GPS signal" = "GPS-signaal";
 "Gearbox" = "Versnellingsbak";
+"Graphite" = "Grafiet";
+"Green" = "Groen";
 "Heats or cools the cabin for a limited time (about 10–30 minutes, depending on the car). Uses grid power when plugged in." = "Verwarmt of koelt het interieur een beperkte tijd (ongeveer 10–30 minuten, afhankelijk van de auto). Gebruikt stroom van het net als de auto is aangesloten.";
 "Home" = "Start";
 "Horn" = "Claxon";
 "Hybrid (type unknown)" = "Hybride (type onbekend)";
+"Icon teal" = "Petrol van het pictogram";
 "Ignition" = "Contact";
 "Indicators on" = "Richtingaanwijzers aan";
+"Indigo" = "Indigo";
 "It was parked unlocked. Open LionCar to lock it." = "De auto is zonder slot geparkeerd. Open LionCar om hem op slot te doen.";
 "Kind of car" = "Soort auto";
 "Known charger" = "Bekende laadpaal";
@@ -254,6 +261,7 @@
 "Open:" = "Open:";
 "Opening hours" = "Openingstijden";
 "Operator" = "Exploitant";
+"Orange" = "Oranje";
 "Other AC chargers" = "Andere AC-laadpunten";
 "Other chargers" = "Andere laadpalen";
 "Other fast chargers" = "Andere snelladers";
@@ -264,6 +272,7 @@
 "Per month" = "Per maand";
 "Period" = "Periode";
 "Petrol / diesel" = "Benzine / diesel";
+"Pink" = "Roze";
 "Place" = "Plaats";
 "Places and prices" = "Plekken en prijzen";
 "Plug-in hybrid" = "Plug-in hybride";
@@ -282,12 +291,14 @@
 "Price per kWh" = "Prijs per kWh";
 "Privacy mode" = "Privacymodus";
 "Privacy mode is on in the car (%@). It blocks remote commands and may hide the position." = "De privacymodus staat aan in de auto (%@). Die blokkeert opdrachten op afstand en kan de positie verbergen.";
+"Purple" = "Paars";
 "Radius %lld m" = "Straal %lld m";
 "Range" = "Actieradius";
 "Raw data from %@" = "Ruwe gegevens van %@";
 "Ready" = "Klaar";
 "Ready at" = "Klaar om";
 "Records (last year)" = "Records (afgelopen jaar)";
+"Red" = "Rood";
 "Refresh" = "Vernieuwen";
 "Remote commands are signed with one-time codes, exactly like in %@. To turn them on, %@ sends an SMS code to the phone number on your account, and you enter it together with your %@ security code (the 4-digit code you chose when you added the car)." = "Opdrachten op afstand worden ondertekend met eenmalige codes, net als in %@. Om ze aan te zetten stuurt %@ een sms-code naar het telefoonnummer van je account; die vul je in samen met je %@-beveiligingscode (de 4-cijferige code die je koos toen je de auto toevoegde).";
 "Remote control" = "Bediening op afstand";
@@ -340,6 +351,7 @@
 "Tag trips automatically by place" = "Ritten automatisch labelen op plek";
 "Tags" = "Labels";
 "Tank size" = "Tankinhoud";
+"Teal" = "Petrol";
 "The car didn't send a new report yet. It may be out of mobile coverage (for example in a garage); try again later." = "De auto heeft nog geen nieuwe gegevens gestuurd. Misschien is er geen mobiel bereik (bijvoorbeeld in een parkeergarage); probeer het later opnieuw.";
 "The car has 4 schedule slots. Set when the car should be ready; it starts heating or cooling shortly before." = "De auto heeft 4 schema's. Stel in wanneer de auto klaar moet zijn; hij begint kort daarvoor met verwarmen of koelen.";
 "The car hasn't sent new data" = "De auto heeft geen nieuwe gegevens gestuurd";

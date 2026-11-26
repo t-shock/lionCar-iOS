@@ -48,6 +48,7 @@
 "A tag with a place is given to every trip that starts or ends within its radius. You can always change a trip's tag by hand." = "Μια ετικέτα με τοποθεσία δίνεται σε κάθε διαδρομή που ξεκινά ή τελειώνει μέσα στην ακτίνα της. Μπορείτε πάντα να αλλάξετε την ετικέτα μιας διαδρομής χειροκίνητα.";
 "About" = "Σχετικά";
 "About %lld %% at %@" = "Περίπου %lld %% στις %@";
+"Accent colour" = "Χρώμα έμφασης";
 "Account" = "Λογαριασμός";
 "Activate" = "Ενεργοποίηση";
 "Activation failed — %@" = "Η ενεργοποίηση απέτυχε — %@";
@@ -60,6 +61,7 @@
 "All car data" = "Όλα τα δεδομένα του αυτοκινήτου";
 "All doors closed" = "Όλες οι πόρτες κλειστές";
 "All trips" = "Όλες οι διαδρομές";
+"Appearance" = "Εμφάνιση";
 "Asking OpenStreetMap…" = "Ερώτημα στο OpenStreetMap…";
 "Automatic" = "Αυτόματα";
 "Average consumption" = "Μέση κατανάλωση";
@@ -74,6 +76,7 @@
 "Battery is low" = "Η μπαταρία είναι χαμηλή";
 "Battery voltage (as reported)" = "Τάση μπαταρίας (όπως αναφέρεται)";
 "Battery, charging and pre-heating" = "Μπαταρία, φόρτιση και προθέρμανση";
+"Blue" = "Μπλε";
 "Brand" = "Μάρκα";
 "By tag" = "Ανά ετικέτα";
 "Cancel" = "Ακύρωση";
@@ -182,12 +185,16 @@
 "Full charge for a trip" = "Πλήρης φόρτιση για ταξίδι";
 "GPS signal" = "Σήμα GPS";
 "Gearbox" = "Κιβώτιο";
+"Graphite" = "Γραφίτης";
+"Green" = "Πράσινο";
 "Heats or cools the cabin for a limited time (about 10–30 minutes, depending on the car). Uses grid power when plugged in." = "Θερμαίνει ή ψύχει την καμπίνα για περιορισμένο χρόνο (περίπου 10–30 λεπτά, ανάλογα με το αυτοκίνητο). Χρησιμοποιεί ρεύμα από το δίκτυο όταν είναι στην πρίζα.";
 "Home" = "Σπίτι";
 "Horn" = "Κόρνα";
 "Hybrid (type unknown)" = "Υβριδικό (άγνωστος τύπος)";
+"Icon teal" = "Πετρόλ εικονιδίου";
 "Ignition" = "Ανάφλεξη";
 "Indicators on" = "Αναμμένα φλας";
+"Indigo" = "Λουλακί";
 "It was parked unlocked. Open LionCar to lock it." = "Σταθμεύτηκε ξεκλείδωτο. Ανοίξτε το LionCar για να το κλειδώσετε.";
 "Kind of car" = "Είδος αυτοκινήτου";
 "Known charger" = "Γνωστός φορτιστής";
@@ -254,6 +261,7 @@
 "Open:" = "Ανοιχτά:";
 "Opening hours" = "Ωράριο";
 "Operator" = "Πάροχος";
+"Orange" = "Πορτοκαλί";
 "Other AC chargers" = "Άλλοι φορτιστές AC";
 "Other chargers" = "Άλλοι φορτιστές";
 "Other fast chargers" = "Άλλοι ταχυφορτιστές";
@@ -264,6 +272,7 @@
 "Per month" = "Ανά μήνα";
 "Period" = "Περίοδος";
 "Petrol / diesel" = "Βενζίνη / ντίζελ";
+"Pink" = "Ροζ";
 "Place" = "Τοποθεσία";
 "Places and prices" = "Τοποθεσίες και τιμές";
 "Plug-in hybrid" = "Plug-in υβριδικό";
@@ -282,12 +291,14 @@
 "Price per kWh" = "Τιμή ανά kWh";
 "Privacy mode" = "Λειτουργία απορρήτου";
 "Privacy mode is on in the car (%@). It blocks remote commands and may hide the position." = "Η λειτουργία απορρήτου είναι ενεργή στο αυτοκίνητο (%@). Μπλοκάρει τις απομακρυσμένες εντολές και μπορεί να κρύβει τη θέση.";
+"Purple" = "Μωβ";
 "Radius %lld m" = "Ακτίνα %lld m";
 "Range" = "Αυτονομία";
 "Raw data from %@" = "Ακατέργαστα δεδομένα από %@";
 "Ready" = "Έτοιμο";
 "Ready at" = "Έτοιμο στις";
 "Records (last year)" = "Ρεκόρ (τελευταίο έτος)";
+"Red" = "Κόκκινο";
 "Refresh" = "Ανανέωση";
 "Remote commands are signed with one-time codes, exactly like in %@. To turn them on, %@ sends an SMS code to the phone number on your account, and you enter it together with your %@ security code (the 4-digit code you chose when you added the car)." = "Οι απομακρυσμένες εντολές υπογράφονται με κωδικούς μίας χρήσης, όπως ακριβώς στο %@. Για την ενεργοποίηση, η %@ στέλνει έναν κωδικό SMS στο τηλέφωνο του λογαριασμού σας και τον εισάγετε μαζί με τον κωδικό ασφαλείας του %@ (τον 4ψήφιο κωδικό που επιλέξατε όταν προσθέσατε το αυτοκίνητο).";
 "Remote control" = "Τηλεχειρισμός";
@@ -340,6 +351,7 @@
 "Tag trips automatically by place" = "Αυτόματη ετικέτα διαδρομών βάσει τοποθεσίας";
 "Tags" = "Ετικέτες";
 "Tank size" = "Χωρητικότητα ρεζερβουάρ";
+"Teal" = "Πετρόλ";
 "The car didn't send a new report yet. It may be out of mobile coverage (for example in a garage); try again later." = "Το αυτοκίνητο δεν έστειλε ακόμη νέα αναφορά. Ίσως είναι εκτός κάλυψης δικτύου (π.χ. σε υπόγειο γκαράζ)· δοκιμάστε ξανά αργότερα.";
 "The car has 4 schedule slots. Set when the car should be ready; it starts heating or cooling shortly before." = "Το αυτοκίνητο έχει 4 θέσεις προγράμματος. Ορίστε πότε πρέπει να είναι έτοιμο· ξεκινά τη θέρμανση ή ψύξη λίγο νωρίτερα.";
 "The car hasn't sent new data" = "Το αυτοκίνητο δεν έχει στείλει νέα δεδομένα";
