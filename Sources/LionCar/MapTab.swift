@@ -106,14 +106,14 @@ struct MapTab: View {
                 Button { Task { await search(force: false) } } label: {
                     Label("Search this area", systemImage: "magnifyingglass").font(.subheadline.bold())
                 }
-                .buttonStyle(.borderedProminent)
+                .prominentGlassButton()
             }
         }
         .padding(.top, 6)
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 4) {
+        GlassGroup { VStack(spacing: 4) {
             if model.placesLoading {
                 HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Asking OpenStreetMap…") }
                     .font(.footnote.bold()).mapPill()
@@ -125,7 +125,7 @@ struct MapTab: View {
             }
             Text(chargers ? "Chargers © OpenStreetMap contributors" : "Fuel stations © OpenStreetMap contributors")
                 .font(.caption2).foregroundStyle(.secondary)
-        }
+        } }
         .padding(.bottom, 6)
     }
 }
@@ -133,7 +133,7 @@ struct MapTab: View {
 /// A small status capsule floating over the map, readable on any map colours.
 private extension View {
     func mapPill() -> some View {
-        padding(.horizontal, 12).padding(.vertical, 6).background(.regularMaterial, in: Capsule())
+        padding(.horizontal, 12).padding(.vertical, 6).glassPill()
     }
 }
 

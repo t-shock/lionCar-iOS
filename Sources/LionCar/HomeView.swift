@@ -89,7 +89,7 @@ struct HomeView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                     if model.remoteReady, stale(st) {
                         Button("Update now") { Task { await model.wakeAndRefresh() } }
-                            .font(.footnote.bold()).buttonStyle(.bordered).controlSize(.small)
+                            .font(.footnote.bold()).glassButton().controlSize(.small)
                             .disabled(model.commandLabel != nil)
                     }
                 }
@@ -117,7 +117,7 @@ struct HomeView: View {
     private func notice(_ text: LocalizedStringKey, icon: String, color: Color) -> some View {
         Label(text, systemImage: icon).font(.subheadline.bold()).foregroundStyle(color)
             .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: Corners.banner, style: .continuous))
     }
 
     /// The car's report is older than 15 minutes: worth offering to wake it.
@@ -133,7 +133,7 @@ struct HomeView: View {
             Spacer()
         }
         .padding(12)
-        .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+        .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: Corners.banner, style: .continuous))
     }
 
     private var alertsCard: some View {
@@ -237,7 +237,7 @@ struct HomeView: View {
             }
             .background(Color(.secondarySystemGroupedBackground))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: Corners.card, style: .continuous))
     }
 
     private func detailsGrid(_ st: VehicleStatus) -> some View {

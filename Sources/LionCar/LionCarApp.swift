@@ -42,12 +42,13 @@ struct RootView: View {
             case .ready: MainTabs().task { model.requestNotificationPermission() }
             }
         }
-        .overlay(alignment: .top) {
+        .overlay(alignment: .bottom) {
             if let t = model.toast {
                 Text(t).font(.subheadline.bold()).padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .glassPill()
+                    // Above the tab bar when there is one (at the top it sat on the glass navigation bar).
+                    .padding(.bottom, model.phase == .ready ? 64 : 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onTapGesture { model.toast = nil }
             }
         }
@@ -69,6 +70,7 @@ struct MainTabs: View {
             StatsView().tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
             SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }
         }
+        .minimizingTabBar()
     }
 }
 

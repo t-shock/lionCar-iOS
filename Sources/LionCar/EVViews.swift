@@ -77,7 +77,7 @@ struct ChargingCard: View {
 
     private func action(_ title: LocalizedStringKey, _ icon: String, _ run: @escaping () async -> Void) -> some View {
         Button { Task { await run() } } label: { Label(title, systemImage: icon).frame(maxWidth: .infinity).padding(.vertical, 6) }
-            .buttonStyle(.borderedProminent)
+            .prominentGlassButton()
             .disabled(model.commandLabel != nil)
     }
 }
@@ -99,7 +99,7 @@ struct ScheduledStartRow: View {
             // Not while LionCar's charging times use the scheduled start.
             if model.remoteReady && !model.chargeSettings.windowOn {
                 Button("Turn off") { confirming = true }
-                    .buttonStyle(.bordered).controlSize(.small)
+                    .glassButton().controlSize(.small)
                     .disabled(model.commandLabel != nil)
             }
         }
@@ -128,7 +128,7 @@ struct ClimateCard: View {
                     Label(st.preconditioningOn ? "Stop pre-heating" : "Pre-heat now", systemImage: st.preconditioningOn ? "stop.fill" : "flame")
                         .frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
+                .prominentGlassButton()
                 .disabled(model.commandLabel != nil)
             }
             NavigationLink { SchedulesView() } label: {
@@ -533,6 +533,6 @@ struct DemoBanner: View {
             Button("Exit") { model.exitDemo() }.font(.footnote.bold())
         }
         .padding(12)
-        .background(Color.purple.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.purple.opacity(0.15), in: RoundedRectangle(cornerRadius: Corners.banner, style: .continuous))
     }
 }

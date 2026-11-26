@@ -3,7 +3,7 @@ import SwiftUI
 /// The rounded panel the Car tab's cards and tiles sit on.
 extension View {
     func cardBackground() -> some View {
-        background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: Corners.card, style: .continuous))
     }
 }
 

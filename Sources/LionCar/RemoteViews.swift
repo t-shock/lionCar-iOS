@@ -9,9 +9,11 @@ struct RemoteCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if model.remoteReady {
-                HStack(spacing: 10) {
-                    bigButton("Lock", "lock.fill") { await model.lockCar(true) }
-                    bigButton("Unlock", "lock.open.fill") { await model.lockCar(false) }
+                GlassGroup {
+                    HStack(spacing: 10) {
+                        bigButton("Lock", "lock.fill") { await model.lockCar(true) }
+                        bigButton("Unlock", "lock.open.fill") { await model.lockCar(false) }
+                    }
                 }
                 HStack(spacing: 10) {
                     smallButton("Lights", "headlight.high.beam.fill") { await model.lights() }
@@ -21,7 +23,7 @@ struct RemoteCard: View {
                 Button { showSetup = true } label: {
                     Label("Set up remote control", systemImage: "key.radiowaves.forward").frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
+                .prominentGlassButton()
                 Text("Lock, unlock, lights and horn. Needs a one-time SMS code and your \(model.brand.app) security code.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
@@ -35,7 +37,7 @@ struct RemoteCard: View {
         Button { Task { await action() } } label: {
             Label(title, systemImage: icon).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 10)
         }
-        .buttonStyle(.borderedProminent)
+        .prominentGlassButton()
         .disabled(model.commandLabel != nil)
     }
 
@@ -43,7 +45,7 @@ struct RemoteCard: View {
         Button { Task { await action() } } label: {
             Label(title, systemImage: icon).frame(maxWidth: .infinity).padding(.vertical, 4)
         }
-        .buttonStyle(.bordered)
+        .glassButton()
         .disabled(model.commandLabel != nil)
     }
 }

@@ -131,6 +131,11 @@ a warning can come late.
 - **Plug-in hybrids and electric cars:** battery, range, charging state, time left, battery health and capacity, and
   the charging and pre-heating features above (untested on a real car)
 
+### Design
+- On iOS 26 and later, Apple's **Liquid Glass**: glass buttons (Lock / Unlock, Charge now…), glass controls floating over
+  the map, a toast on glass, a tab bar that shrinks while you scroll, and rounder cards. Content stays solid, as Apple
+  recommends; older iOS versions keep the previous look
+
 ### Languages
 English, Greek and Dutch (follows the iPhone, or choose under iPhone Settings › LionCar › Language). Much of the Dutch
 comes from LionFlow's own translation.
